@@ -1,5 +1,6 @@
 import app from './app.js';
 import { db } from '#@/core/database';
+import { initSocket } from '#@/core/socket.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -10,6 +11,9 @@ if (process.env.NODE_ENV === 'production' && !process.env.CLOUDINARY_URL) {
 const server = app.listen(PORT, () => {
   console.log(`Enterprise WFM backend server running on http://localhost:${PORT}`);
 });
+
+// Initialize Socket.IO real-time server wrapper
+initSocket(server);
 
 // Graceful shutdown
 process.on('SIGINT', () => {

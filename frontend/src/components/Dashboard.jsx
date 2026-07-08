@@ -21,7 +21,19 @@ import {
   Clock,
   Calendar,
   DollarSign,
-  Award
+  Award,
+  BarChart,
+  Folder,
+  Monitor,
+  MessageSquare,
+  FileText,
+  Bot,
+  X,
+  Mic,
+  Sparkles,
+  Check,
+  Play,
+  AlertCircle
 } from 'lucide-react';
 
 import OrganizationsTab from './org/OrganizationsTab';
@@ -36,6 +48,15 @@ import ProjectsTab from './project/ProjectsTab';
 import AssetsTab from './asset/AssetsTab';
 import TicketsTab from './ticket/TicketsTab';
 import DocumentsTab from './document/DocumentsTab';
+import NotificationsCenter from './notification/NotificationsCenter';
+import ReportsTab from './report/ReportsTab';
+import AIAssistantWidget from './ai/AIAssistantWidget';
+import AgentQueueTab from './agent/AgentQueueTab';
+import SkillsMarketplaceTab from './skill/SkillsMarketplaceTab';
+import WorkforceSimulatorTab from './analytics/WorkforceSimulatorTab';
+import HybridWorkHubTab from './hybrid/HybridWorkHubTab';
+import GamificationTab from './gamification/GamificationTab';
+import ScenarioOrgChartTab from './org/ScenarioOrgChartTab';
 
 const Dashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'organizations', 'invites', 'roles', 'delegations', 'emailLogs'
@@ -57,6 +78,20 @@ const Dashboard = ({ user, onLogout }) => {
 
   // Floating AI Assistant States
   const [isAiOpen, setIsAiOpen] = useState(false);
+
+  // Command Center Overview States
+  const [nudges, setNudges] = useState([
+    { id: 1, type: "urgent", message: "🔥 Task #442 deadline is tomorrow at 12:00 PM", action: "Review" },
+    { id: 2, type: "info", message: "🌟 You've worked 4 hours straight! Take a quick screen break.", action: "Snooze" },
+    { id: 3, type: "alert", message: "⚡ Weekly payroll draft is awaiting your approval", action: "View" }
+  ]);
+  const [clockedIn, setClockedIn] = useState(false);
+  const [clockTime, setClockTime] = useState(null);
+  const [newHiresCount, setNewHiresCount] = useState(3);
+  const [salaryRaisePct, setSalaryRaisePct] = useState(5);
+  const [kudosMsg, setKudosMsg] = useState('');
+  const [kudosTo, setKudosTo] = useState('Rahul');
+  const [kudosPoints, setKudosPoints] = useState(50);
   const [aiInput, setAiInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [aiMessages, setAiMessages] = useState([
@@ -1208,6 +1243,160 @@ const Dashboard = ({ user, onLogout }) => {
               <FileText size={20} strokeWidth={1.75} /> Policy Documents
             </button>
 
+            <button
+              onClick={() => { setActiveTab('reports'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'reports' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'reports' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'reports' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <BarChart size={20} strokeWidth={1.75} /> Reports & Analytics
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('agents'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'agents' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'agents' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'agents' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <span>🤖</span> Agent Queue
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('skills'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'skills' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'skills' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'skills' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <span>🧠</span> Skills Marketplace
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('simulator'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'simulator' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'simulator' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'simulator' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <span>📊</span> Workforce Simulator
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('hybrid'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'hybrid' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'hybrid' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'hybrid' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <span>🏠</span> Hybrid Work Hub
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('gamification'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'gamification' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'gamification' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'gamification' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <span>🎮</span> Gamification & Kudos
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('scenarioOrg'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'scenarioOrg' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'scenarioOrg' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'scenarioOrg' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <span>🏢</span> Scenario Org Planner
+            </button>
+
             {(user.role === 'Admin' || user.role === 'Super Admin' || user.permissions?.includes('invite:generate')) && (
               <button
                 onClick={() => { setActiveTab('invites'); setMessage(null); }}
@@ -1361,68 +1550,34 @@ const Dashboard = ({ user, onLogout }) => {
             {/* Group notification bell + user identity pill together */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
               
-              {/* Notification bell */}
-              <span 
-                style={{ cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', color: '#64748b' }} 
-                title="Notifications"
-                role="button"
-                tabIndex={0}
-                onClick={() => setShowNotifications(!showNotifications)}
-              >
-                <Bell size={20} strokeWidth={1.75} />
-                {notifications.some(n => !n.read) && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-2px',
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: '#ef4444'
-                  }} />
-                )}
+              {/* Notification Center */}
+              <NotificationsCenter user={activeUser} />
 
-                {/* Notifications dropdown list */}
-                {showNotifications && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '30px',
-                    right: '0',
-                    width: '280px',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                    zIndex: 100,
-                    padding: '8px 0',
-                    textAlign: 'left'
-                  }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ padding: '8px 16px', borderBottom: '1px solid #f1f5f9', fontWeight: 'bold', fontSize: '12.5px', color: '#1e293b', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>System Notifications</span>
-                      <button 
-                        style={{ border: 'none', background: 'none', color: '#2563eb', fontSize: '10.5px', cursor: 'pointer' }}
-                        onClick={() => {
-                          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                        }}
-                      >
-                        Mark all read
-                      </button>
-                    </div>
-                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                      {notifications.length === 0 ? (
-                        <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '11px' }}>No notifications.</div>
-                      ) : (
-                        notifications.map(n => (
-                          <div key={n.id} style={{ padding: '8px 16px', borderBottom: '1px solid #f1f5f9', fontSize: '11.5px', background: n.read ? '#ffffff' : '#eff6ff' }}>
-                            <p style={{ margin: '0 0 2px 0', color: '#334155' }}>{n.text}</p>
-                            <span style={{ color: '#94a3b8', fontSize: '9px' }}>{n.time}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </span>
+              {/* Dark Mode Theme Toggle */}
+              <button
+                onClick={() => {
+                  const html = document.documentElement;
+                  if (html.classList.contains('dark')) {
+                    html.classList.remove('dark');
+                  } else {
+                    html.classList.add('dark');
+                  }
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  outline: 'none',
+                  fontSize: '18px'
+                }}
+                title="Toggle Dark Mode"
+              >
+                🌓
+              </button>
 
               {/* Impersonator selector (Admins only) */}
               {(user.role === 'Super Admin' || user.role === 'Admin') && (
@@ -1494,310 +1649,557 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
 
         {/* 1. OVERVIEW TAB: SaaS Product Dashboard Grid */}
-        {activeTab === 'overview' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }} className="fade-in">
-            {/* Greeting Banner */}
-            <div style={{
-              backgroundColor: '#ecfdf5',
-              border: '1px solid #a7f3d0',
-              borderRadius: '16px',
-              padding: '24px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#065f46', marginBottom: '6px' }}>
-                  Good day, {user.name}! 👋
-                </h3>
-                <p style={{ fontSize: '14px', color: '#047857', marginBottom: '8px' }}>
-                  {user.role} - {user.organization}
-                </p>
-                <span style={{
-                  display: 'inline-block',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  color: '#047857',
-                  backgroundColor: '#d1fae5',
-                  padding: '4px 10px',
-                  borderRadius: '12px'
-                }}>
-                  Staff ID: EMP_{user.id || '103'}
-                </span>
-              </div>
+        {activeTab === 'overview' && (() => {
+          const hr = new Date().getHours();
+          const getDashboardContext = () => {
+            if (hr >= 5 && hr < 12) return { name: "Morning Launch", desc: "Clock-in, morning tasks, and task highlights", timeOfDay: "morning" };
+            if (hr >= 12 && hr < 15) return { name: "Midday Sync", desc: "Pending approvals, lunch reminders, and team presence", timeOfDay: "midday" };
+            if (hr >= 15 && hr < 18) return { name: "Afternoon Focus", desc: "Deadline warnings, focus state, and overtime tracking", timeOfDay: "afternoon" };
+            return { name: "Evening Wrap", desc: "Tomorrow's outlook, clock-out checks, and today's summary", timeOfDay: "evening" };
+          };
+          const context = getDashboardContext();
 
-              {/* Attendance Card */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-              }}>
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                    DAILY ATTENDANCE
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#334155', marginTop: '2px' }}>
-                    Status: <span style={{ color: '#10b981' }}>PRESENT</span> (09:00 - 18:00)
-                  </div>
-                </div>
-                <span style={{
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  color: '#15803d',
-                  backgroundColor: '#dcfce7',
-                  padding: '6px 12px',
-                  borderRadius: '20px'
-                }}>
-                  Completed
-                </span>
-              </div>
-            </div>
+          // Budget Simulator Calculations
+          const basePayroll = 1.15; // in Crores
+          const calculatedPayroll = (basePayroll + (newHiresCount * 0.15) + (basePayroll * (salaryRaisePct / 100))).toFixed(2);
 
-            {/* Stats Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '24px'
-            }}>
-              {/* Stat 1: Leave Requests */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>LEAVE REQUESTS</div>
-                  <div style={{ fontSize: '28px', fontWeight: '800', color: '#0f172a' }}>1</div>
-                  <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>1 pending approval</div>
-                </div>
-                <span style={{ fontSize: '32px' }}>📅</span>
-              </div>
+          const handleSendKudos = (e) => {
+            e.preventDefault();
+            if (!kudosMsg.trim()) return;
+            setMessage({ type: 'success', text: `Sent ${kudosPoints} Kudos points to ${kudosTo}!` });
+            setKudosMsg('');
+          };
 
-              {/* Stat 2: Approved Leaves */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>APPROVED LEAVES</div>
-                  <div style={{ fontSize: '28px', fontWeight: '800', color: '#0f172a' }}>0</div>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>This calendar month</div>
-                </div>
-                <span style={{ fontSize: '32px' }}>✅</span>
-              </div>
-
-              {/* Stat 3: Support Tickets */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>SUPPORT TICKETS</div>
-                  <div style={{ fontSize: '28px', fontWeight: '800', color: '#0f172a' }}>0</div>
-                  <div style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>0 active tickets</div>
-                </div>
-                <span style={{ fontSize: '32px' }}>🛡️</span>
-              </div>
-
-              {/* Stat 4: Work Shift */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>WORK SHIFT</div>
-                  <div style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>09:00 - 18:00</div>
-                  <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Standard Shift</div>
-                </div>
-                <span style={{ fontSize: '32px' }}>⏰</span>
-              </div>
-            </div>
-
-            {/* Bottom Row */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1.6fr 1.4fr',
-              gap: '32px'
-            }}>
-              {/* Assigned Tasks */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '24px'
-              }}>
-                <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>My Assigned Tasks</h4>
-                
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }} className="fade-in">
+              
+              {/* 5.4 Nudge Ticker */}
+              {nudges.length > 0 && (
                 <div style={{
-                  border: '1px solid #e2e8f0',
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  borderLeft: '4px solid #6366F1',
                   borderRadius: '12px',
-                  padding: '20px',
-                  backgroundColor: '#f8fafc',
+                  padding: '12px 20px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  overflow: 'hidden',
                   position: 'relative'
-                }}>
-                  <span style={{
-                    position: 'absolute',
-                    top: '20px',
-                    right: '20px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    color: '#b91c1c',
-                    backgroundColor: '#fee2e2',
-                    padding: '4px 10px',
-                    borderRadius: '12px'
-                  }}>
-                    HIGH PRIORITY
-                  </span>
+                }} className="glass-card">
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div className="nudge-marquee">
+                      {nudges.map(n => (
+                        <span key={n.id} style={{ marginRight: '40px', fontSize: '13px', color: '#f8fafc', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: n.type === 'urgent' ? '#EF4444' : '#F59E0B'
+                          }} />
+                          {n.message}
+                          <button onClick={() => {
+                            if (n.action === 'Review') setActiveTab('projects');
+                            if (n.action === 'View') setActiveTab('payroll');
+                          }} style={{ color: '#8b5cf6', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', textDecoration: 'underline' }}>
+                            [{n.action}]
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={() => setNudges([])} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '14px', marginLeft: '12px' }}>×</button>
+                </div>
+              )}
 
-                  <h5 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>
-                    API Integration
-                  </h5>
-                  <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>
-                    Project: Employee Portal v2
+              {/* Greeting & Time-Aware Context banner */}
+              <div className="glass-card" style={{
+                borderRadius: '16px',
+                padding: '24px',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(30, 41, 59, 0.8) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#818cf8', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    ⚡ {context.name} Context Active
+                  </div>
+                  <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', marginTop: '6px', marginBottom: '4px' }}>
+                    Welcome back, {user.name}
+                  </h2>
+                  <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0 }}>
+                    {context.desc}
                   </p>
-
-                  <div style={{ display: 'flex', gap: '24px', fontSize: '13px', color: '#475569' }}>
-                    <div>
-                      <strong>Status:</strong> <span style={{ color: '#d97706', fontWeight: '600' }}>In Progress</span>
-                    </div>
-                    <div>
-                      <strong>Deadline:</strong> 2026-07-15
-                    </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#f8fafc' }}>
+                    {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                    Role Profile: <span style={{ color: '#10B981', fontWeight: 'bold' }}>{activeUserRole}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Self Service Portal */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '24px'
-              }}>
-                <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Self Service Portal</h4>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <button 
-                    onClick={() => setActiveTab('delegations')}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: '#ffffff',
-                      color: '#334155',
-                      fontWeight: '600',
-                      fontSize: '13.5px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = '#e2e8f0';
-                    }}
-                  >
-                    <span>Apply for Personal Leave</span>
-                    <span>→</span>
-                  </button>
+              {/* BENTO GRID ROOT */}
+              {/* 4.1 ROLE-SPECIFIC RENDERERS */}
+              
+              {/* ROLE A: EMPLOYEE VIEW ("My Mission Control") */}
+              {activeUserRole === 'Employee' && (
+                <div className="bento-grid">
+                  
+                  {/* Today Attendance Ring Card */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', justifyContent: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600', alignSelf: 'flex-start' }}>TODAY'S SHIFT</h3>
+                    <div style={{ position: 'relative', width: '120px', height: '120px' }}>
+                      <svg width="120" height="120" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="50" fill="transparent" stroke="#334155" strokeWidth="10" />
+                        <circle cx="60" cy="60" r="50" fill="transparent" stroke={clockedIn ? "#10B981" : "#F59E0B"} strokeWidth="10"
+                          strokeDasharray="314.15" strokeDashoffset={clockedIn ? "78.5" : "235"} strokeLinecap="round" />
+                      </svg>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <span style={{ fontSize: '18px', fontWeight: '800', color: '#f8fafc' }}>{clockedIn ? '85%' : '0%'}</span>
+                        <span style={{ fontSize: '9px', display: 'block', color: '#94a3b8' }}>Shift Complete</span>
+                      </div>
+                    </div>
+                    <button onClick={() => {
+                      setClockedIn(!clockedIn);
+                      setClockTime(new Date().toLocaleTimeString());
+                      setMessage({ type: 'success', text: clockedIn ? 'Clocked out successfully!' : 'Clocked in successfully!' });
+                    }} className="btn-primary" style={{ width: '100%', padding: '10px' }}>
+                      {clockedIn ? `Clock Out (${clockTime || '09:00'})` : 'Clock In Now'}
+                    </button>
+                  </div>
 
-                  <button 
-                    onClick={() => setMessage({ type: 'success', text: 'Salary Payslip downloaded successfully!' })}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: '#ffffff',
-                      color: '#334155',
-                      fontWeight: '600',
-                      fontSize: '13.5px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = '#e2e8f0';
-                    }}
-                  >
-                    <span>Download Salary Payslip</span>
-                    <span>→</span>
-                  </button>
+                  {/* Quick Actions Card */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>QUICK NAVIGATION</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
+                      <button onClick={() => setActiveTab('leave')} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'white', borderRadius: '12px', cursor: 'pointer', padding: '12px', fontSize: '13px' }}>
+                        📅 Leave Apply
+                      </button>
+                      <button onClick={() => setActiveTab('payroll')} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'white', borderRadius: '12px', cursor: 'pointer', padding: '12px', fontSize: '13px' }}>
+                        💰 Payslip
+                      </button>
+                      <button onClick={() => setActiveTab('tickets')} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'white', borderRadius: '12px', cursor: 'pointer', padding: '12px', fontSize: '13px' }}>
+                        🛠 Support
+                      </button>
+                      <button onClick={() => setActiveTab('documents')} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'white', borderRadius: '12px', cursor: 'pointer', padding: '12px', fontSize: '13px' }}>
+                        📂 Docs Repo
+                      </button>
+                    </div>
+                  </div>
 
-                  <button 
-                    onClick={() => setIsAiOpen(true)}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: '#ffffff',
-                      color: '#334155',
-                      fontWeight: '600',
-                      fontSize: '13.5px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = '#e2e8f0';
-                    }}
-                  >
-                    <span>Raise Helpdesk Support Ticket (AI Assistant)</span>
-                    <span>→</span>
-                  </button>
+                  {/* XP & Level Progress Ring */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>GAMIFICATION MILESTONES</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+                      <div style={{ position: 'relative', width: '70px', height: '70px' }}>
+                        <svg width="70" height="70" viewBox="0 0 70 70">
+                          <circle cx="35" cy="35" r="28" fill="transparent" stroke="#334155" strokeWidth="6" />
+                          <circle cx="35" cy="35" r="28" fill="transparent" stroke="#8b5cf6" strokeWidth="6"
+                            strokeDasharray="175.92" strokeDashoffset="52.77" strokeLinecap="round" />
+                        </svg>
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontWeight: 'bold', color: 'white', fontSize: '14px' }}>
+                          Lvl 7
+                        </div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', color: '#f8fafc', fontWeight: 'bold' }}>3,450 / 5,000 XP</div>
+                        <div style={{ height: '6px', background: '#334155', borderRadius: '3px', marginTop: '6px', overflow: 'hidden' }}>
+                          <div style={{ width: '69%', height: '100%', background: 'linear-gradient(90deg, #6366F1 0%, #8B5CF6 100%)' }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                          <span title="Perfect Attendance" style={{ fontSize: '14px' }}>🏆</span>
+                          <span title="Speedy Approver" style={{ fontSize: '14px' }}>🔥</span>
+                          <span title="Task Master" style={{ fontSize: '14px' }}>⭐</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Kanban Mini Overview */}
+                  <div className="glass-card" style={{ gridColumn: 'span 8', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>MY TASKS PIPELINE SUMMARY</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold' }}>TO DO</span>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'white', marginTop: '4px' }}>3</div>
+                      </div>
+                      <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+                        <span style={{ fontSize: '11px', color: '#818cf8', fontWeight: 'bold' }}>IN PROGRESS</span>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#818cf8', marginTop: '4px' }}>2</div>
+                      </div>
+                      <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.15)' }}>
+                        <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 'bold' }}>REVIEW</span>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fbbf24', marginTop: '4px' }}>1</div>
+                      </div>
+                      <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                        <span style={{ fontSize: '11px', color: '#34d399', fontWeight: 'bold' }}>COMPLETED</span>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#34d399', marginTop: '4px' }}>8</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team Presence avatars list */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>TEAM PRESENCE</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                        <span style={{ color: '#f8fafc' }}>🟢 Amit Pathak</span>
+                        <span style={{ fontSize: '10px', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>Online</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                        <span style={{ color: '#f8fafc' }}>🟡 Neha Mehta</span>
+                        <span style={{ fontSize: '10px', color: '#F59E0B', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>Away</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                        <span style={{ color: '#f8fafc' }}>🏢 Priya Sharma</span>
+                        <span style={{ fontSize: '10px', color: '#3B82F6', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>In Office</span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
+              )}
+
+              {/* ROLE B: MANAGER VIEW ("The Situation Room") */}
+              {(activeUserRole === 'Manager' || activeUserRole === 'Admin' || activeUserRole === 'Super Admin') && (
+                <div className="bento-grid">
+                  
+                  {/* Team Health Pulse with glowing threshold */}
+                  <div className="glass-card orb-glow-purple" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>TEAM HEALTH PULSE</h3>
+                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                      <span style={{ fontSize: '48px', fontWeight: '800', color: '#10B981' }}>94%</span>
+                      <span style={{ fontSize: '12px', display: 'block', color: '#94a3b8', marginTop: '4px' }}>Excellent engagement</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
+                      📈 +3% from last week
+                    </div>
+                  </div>
+
+                  {/* Pending Approvals */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>PENDING ACTION REQUESTS</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, justifyContent: 'center' }}>
+                      <div onClick={() => setActiveTab('leave')} style={{ cursor: 'pointer', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', fontSize: '12.5px', color: 'white', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Pending Leave Requests</span>
+                        <strong style={{ color: '#fbbf24' }}>5</strong>
+                      </div>
+                      <div onClick={() => setActiveTab('tickets')} style={{ cursor: 'pointer', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', fontSize: '12.5px', color: 'white', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Active Helpdesk Tickets</span>
+                        <strong style={{ color: '#ef4444' }}>3</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Agent Queue Badge */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>AI OPERATION AGENTS</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 0' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                        <Bot size={24} color="#6366F1" />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>3 Awaiting</span>
+                        <span style={{ fontSize: '11px', display: 'block', color: '#94a3b8' }}>Approve in Agent Queue tab</span>
+                      </div>
+                    </div>
+                    <button onClick={() => setActiveTab('agents')} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                      Open Agent Queue
+                    </button>
+                  </div>
+
+                  {/* Attrition Risk radar details */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>ATTRITION RISK ANALYSIS</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
+                        <span style={{ color: '#94a3b8' }}>🟢 Low Risk employees:</span>
+                        <strong style={{ color: 'white' }}>8</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
+                        <span style={{ color: '#94a3b8' }}>🟡 Medium Risk employees:</span>
+                        <strong style={{ color: 'white' }}>3</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
+                        <span style={{ color: '#ef4444' }}>🔴 High Risk employees:</span>
+                        <strong style={{ color: '#ef4444' }}>1</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 5.6 Workload Heatmap grid */}
+                  <div className="glass-card" style={{ gridColumn: 'span 8', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>TEAM WORKLOAD HEATMAP (Hours Booked)</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {['Rahul', 'Amit', 'Neha', 'Priya'].map((member, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ width: '60px', fontSize: '12.5px', color: 'white' }}>{member}</span>
+                          <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
+                            {[8, 9, 7, 10, 6].map((hours, idx) => (
+                              <div
+                                key={idx}
+                                title={`${hours} hours`}
+                                style={{
+                                  flex: 1,
+                                  height: '24px',
+                                  borderRadius: '4px',
+                                  background: hours >= 9 ? '#EF4444' : hours >= 8 ? '#10B981' : '#334155',
+                                  opacity: hours / 10,
+                                  boxShadow: hours >= 9 ? '0 0 8px #EF4444' : 'none'
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Team Live activity timeline stream */}
+                  <div className="glass-card" style={{ gridColumn: 'span 12', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>TEAM REAL-TIME ACTIVITY STREAM</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '180px', overflowY: 'auto' }}>
+                      <div style={{ fontSize: '13px', color: '#f8fafc' }}>
+                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[17:28]</span> 🤖 OnboardingAgent proposed welcome kits setup for new developer.
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#f8fafc' }}>
+                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[16:45]</span> 👤 Priya Sharma reserved office Desk 2 for tomorrow.
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#f8fafc' }}>
+                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[15:10]</span> 💰 FinanceAgent completed August payroll projections.
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ROLE C: HR OBSERVATORY VIEW */}
+              {(activeUserRole === 'HR' || activeUserRole === 'Admin' || activeUserRole === 'Super Admin') && (
+                <div className="bento-grid">
+                  
+                  {/* KPIs */}
+                  <div className="glass-card" style={{ gridColumn: 'span 12', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>ORGANIZATION INTELLIGENCE COMPASS</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>Total Headcount</div>
+                        <div style={{ fontSize: '28px', fontWeight: '800', color: 'white', marginTop: '6px' }}>142</div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>Active Staff</div>
+                        <div style={{ fontSize: '28px', fontWeight: '800', color: 'white', marginTop: '6px' }}>138</div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>New Hires</div>
+                        <div style={{ fontSize: '28px', fontWeight: '800', color: '#10B981', marginTop: '6px' }}>4</div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>Open Positions</div>
+                        <div style={{ fontSize: '28px', fontWeight: '800', color: '#fbbf24', marginTop: '6px' }}>12</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sankey funnel placeholder paths */}
+                  <div className="glass-card" style={{ gridColumn: 'span 6', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>AI RECRUITMENT PIPELINE FLOW</h3>
+                    <div style={{ position: 'relative', height: '140px' }}>
+                      <svg width="100%" height="100%" viewBox="0 0 300 120">
+                        <path d="M 20 20 C 100 20, 100 40, 180 40" fill="none" stroke="rgba(99, 102, 241, 0.4)" strokeWidth="16" />
+                        <path d="M 20 60 C 100 60, 100 50, 180 50" fill="none" stroke="rgba(99, 102, 241, 0.2)" strokeWidth="10" />
+                        <path d="M 180 45 C 220 45, 230 70, 280 70" fill="none" stroke="rgba(16, 185, 129, 0.4)" strokeWidth="8" />
+                        <text x="10" y="45" fill="white" fontSize="10" fontWeight="bold">Applied (42)</text>
+                        <text x="140" y="90" fill="white" fontSize="10" fontWeight="bold">Screened (18)</text>
+                        <text x="240" y="110" fill="white" fontSize="10" fontWeight="bold">Offers (4)</text>
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Predicted Alerts panel */}
+                  <div className="glass-card" style={{ gridColumn: 'span 6', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>PREDICTIVE CAPACITY ALERTS</h3>
+                    <div style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '10px', fontSize: '12.5px', color: '#f87171' }}>
+                      🚨 <strong>Engineering team</strong> faces 18% attrition risk in Q3.
+                    </div>
+                    <div style={{ padding: '10px 14px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '10px', fontSize: '12.5px', color: '#fbbf24' }}>
+                      💡 <strong>Action recommended:</strong> Hire 2 backend developers by August 15.
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ROLE D: FINANCE LEDGER VIEW */}
+              {(activeUserRole === 'Finance' || activeUserRole === 'Admin' || activeUserRole === 'Super Admin') && (
+                <div className="bento-grid">
+                  
+                  {/* Monthly Payroll processed ring */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600', alignSelf: 'flex-start' }}>PAYROLL STATUS</h3>
+                    <div style={{ position: 'relative', width: '110px', height: '110px' }}>
+                      <svg width="110" height="110" viewBox="0 0 110 110">
+                        <circle cx="55" cy="55" r="45" fill="transparent" stroke="#334155" strokeWidth="8" />
+                        <circle cx="55" cy="55" r="45" fill="transparent" stroke="#10b981" strokeWidth="8"
+                          strokeDasharray="282.7" strokeDashoffset="42.4" strokeLinecap="round" />
+                      </svg>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'white' }}>85%</span>
+                        <span style={{ fontSize: '8px', display: 'block', color: '#94a3b8' }}>Processed</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cost breakdown donut drawing */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>SPENDING BREAKDOWN</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px', color: 'white' }}>
+                      <div>💻 Salaries: 68%</div>
+                      <div>🏥 Benefits: 15%</div>
+                      <div>🎉 Bonuses: 12%</div>
+                    </div>
+                  </div>
+
+                  {/* 5.4 Budget Simulator with Sliders */}
+                  <div className="glass-card" style={{ gridColumn: 'span 4', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>BUDGET LIVE SIMULATOR</h3>
+                    <div>
+                      <label style={{ fontSize: '11.5px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Simulate New Hires (+{newHiresCount})</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="20"
+                        value={newHiresCount}
+                        onChange={(e) => setNewHiresCount(parseInt(e.target.value))}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11.5px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Simulate Raise (+{salaryRaisePct}%)</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="15"
+                        value={salaryRaisePct}
+                        onChange={(e) => setSalaryRaisePct(parseInt(e.target.value))}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>PROJECTED PAYROLL COST</span>
+                      <strong style={{ fontSize: '18px', color: '#f8fafc' }}>₹{calculatedPayroll} Crore/month</strong>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ROLE E: ADMIN PLATFORM CORE VIEW */}
+              {(activeUserRole === 'Admin' || activeUserRole === 'Super Admin') && (
+                <div className="bento-grid">
+                  
+                  {/* Platform health latency */}
+                  <div className="glass-card" style={{ gridColumn: 'span 6', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>PLATFORM CORE MONITOR</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: '13px', color: '#10B981' }}>🟢 All Systems Operational</span>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginTop: '6px' }}>42 Users Online</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>API Latency</span>
+                        <strong style={{ fontSize: '18px', display: 'block', color: 'white' }}>45ms</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Active modules grid */}
+                  <div className="glass-card" style={{ gridColumn: 'span 6', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>MODULE CORE MATRIX</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', fontSize: '11.5px', color: 'white' }}>
+                      <div style={{ padding: '6px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>Auth OK</div>
+                      <div style={{ padding: '6px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>Agent OK</div>
+                      <div style={{ padding: '6px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>DB OK</div>
+                    </div>
+                  </div>
+
+                  {/* Interactive RBAC permissions table preview */}
+                  <div className="glass-card" style={{ gridColumn: 'span 12', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>INTERACTIVE RBAC MATRIX</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', color: 'white' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                          <th style={{ textAlign: 'left', padding: '8px' }}>Role</th>
+                          <th style={{ textAlign: 'center', padding: '8px' }}>Users Module</th>
+                          <th style={{ textAlign: 'center', padding: '8px' }}>Payroll Module</th>
+                          <th style={{ textAlign: 'center', padding: '8px' }}>AI Operations</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '8px' }}>Super Admin</td>
+                          <td style={{ textAlign: 'center', color: '#10b981' }}>Full Access</td>
+                          <td style={{ textAlign: 'center', color: '#10b981' }}>Full Access</td>
+                          <td style={{ textAlign: 'center', color: '#10b981' }}>Full Access</td>
+                        </tr>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '8px' }}>Manager</td>
+                          <td style={{ textAlign: 'center', color: '#fbbf24' }}>Read Only</td>
+                          <td style={{ textAlign: 'center', color: '#ef4444' }}>No Access</td>
+                          <td style={{ textAlign: 'center', color: '#10b981' }}>Approve Actions</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Peer Kudos Card */}
+              <div className="glass-card" style={{ borderRadius: '16px', padding: '24px' }}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>DISPATCH PEER KUDOS POINTS</h3>
+                <form onSubmit={handleSendKudos} style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Select Colleague</label>
+                    <select value={kudosTo} onChange={(e) => setKudosTo(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(15,23,42,0.4)', color: 'white' }}>
+                      <option value="Rahul">Rahul (HQ)</option>
+                      <option value="Amit">Amit (Engineering)</option>
+                      <option value="Priya">Priya (HR)</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Kudos Message</label>
+                    <input
+                      type="text"
+                      placeholder="Great help on task #442!"
+                      value={kudosMsg}
+                      onChange={(e) => setKudosMsg(e.target.value)}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(15,23,42,0.4)', color: 'white' }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Points (50-200)</label>
+                    <input
+                      type="number"
+                      min="50"
+                      max="200"
+                      value={kudosPoints}
+                      onChange={(e) => setKudosPoints(parseInt(e.target.value))}
+                      style={{ width: '80px', padding: '8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(15,23,42,0.4)', color: 'white' }}
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary" style={{ padding: '8px 16px' }}>Gift Kudos</button>
+                </form>
               </div>
+
             </div>
-          </div>
-        )}
+          );
+        })()}
 
       {/* 2. ORGANIZATIONS TAB: Departments, Designations, Locations, Shifts, Holidays, Hierarchies */}
       {activeTab === 'organizations' && (
@@ -1866,6 +2268,41 @@ const Dashboard = ({ user, onLogout }) => {
       {/* 2.12 DOCUMENTS REPOSITORY */}
       {activeTab === 'documents' && (
         <DocumentsTab user={activeUser} />
+      )}
+
+      {/* 2.13 REPORTS & ANALYTICS */}
+      {activeTab === 'reports' && (
+        <ReportsTab user={activeUser} />
+      )}
+
+      {/* 2.14 AGENT QUEUE */}
+      {activeTab === 'agents' && (
+        <AgentQueueTab user={activeUser} />
+      )}
+
+      {/* 2.15 SKILLS MARKETPLACE */}
+      {activeTab === 'skills' && (
+        <SkillsMarketplaceTab user={activeUser} />
+      )}
+
+      {/* 2.16 WORKFORCE SIMULATOR */}
+      {activeTab === 'simulator' && (
+        <WorkforceSimulatorTab user={activeUser} />
+      )}
+
+      {/* 2.17 HYBRID WORK HUB */}
+      {activeTab === 'hybrid' && (
+        <HybridWorkHubTab user={activeUser} />
+      )}
+
+      {/* 2.18 GAMIFICATION & KUDOS */}
+      {activeTab === 'gamification' && (
+        <GamificationTab user={activeUser} />
+      )}
+
+      {/* 2.19 SCENARIO ORG PLANNER */}
+      {activeTab === 'scenarioOrg' && (
+        <ScenarioOrgChartTab user={activeUser} />
       )}
 
       {/* 3. INVITES TAB: Table of Codes, Copy Code, Generate Codes */}
@@ -2770,6 +3207,8 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         )}
       </div>
+
+      <AIAssistantWidget activeTab={activeTab} />
 
       </main>
     </div>

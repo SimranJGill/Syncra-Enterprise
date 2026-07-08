@@ -14,7 +14,8 @@ import {
   ChevronRight, 
   ChevronDown, 
   Copy,
-  Users
+  Users,
+  Crown
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/v1';

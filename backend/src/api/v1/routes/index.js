@@ -24,6 +24,15 @@ import projectRoutes from '#@/modules/project/api/v1/routes.js';
 import assetRoutes from '#@/modules/asset/api/v1/routes.js';
 import ticketRoutes from '#@/modules/ticket/api/v1/routes.js';
 import documentRoutes from '#@/modules/document/api/v1/routes.js';
+import notificationRoutes from '#@/modules/notification/api/v1/routes.js';
+import reportRoutes from '#@/modules/report/api/v1/routes.js';
+import agentRoutes from '#@/modules/agent/api/v1/routes.js';
+import skillRoutes from '#@/modules/skill/api/v1/routes.js';
+import analyticsRoutes from '#@/modules/analytics/api/v1/routes.js';
+import hybridRoutes from '#@/modules/hybrid/api/v1/routes.js';
+import nudgeRoutes from '#@/modules/nudge/api/v1/routes.js';
+import gamificationRoutes from '#@/modules/gamification/api/v1/routes.js';
+import orgScenarioRoutes from '#@/modules/org-chart/api/v1/routes.js';
 
 const router = Router();
 
@@ -53,6 +62,15 @@ router.use('/projects', projectRoutes);
 router.use('/assets', assetRoutes);
 router.use('/tickets', ticketRoutes);
 router.use('/documents', documentRoutes);
+router.use('/notifications', notificationRoutes);
+router.use('/reports', reportRoutes);
+router.use('/agents', agentRoutes);
+router.use('/skills', skillRoutes);
+router.use('/analytics', analyticsRoutes);
+router.use('/hybrid', hybridRoutes);
+router.use('/nudges', nudgeRoutes);
+router.use('/gamification', gamificationRoutes);
+router.use('/org-chart', orgScenarioRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => res.status(200).json({

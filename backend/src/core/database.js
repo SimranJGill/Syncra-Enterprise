@@ -787,6 +787,322 @@ db.serialize(() => {
     if (err) console.error('Error creating document_versions table:', err.message);
     else console.log('Document_versions table ready.');
   });
+
+  // Create Module 13 - Notifications tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      link_to TEXT,
+      read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating notifications table:', err.message);
+    else console.log('Notifications table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER UNIQUE NOT NULL,
+      email_enabled INTEGER DEFAULT 1,
+      in_app_enabled INTEGER DEFAULT 1,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating notification_preferences table:', err.message);
+    else console.log('Notification_preferences table ready.');
+  });
+
+  // Create Module 15 - AI Operations Assistant tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ai_conversations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating ai_conversations table:', err.message);
+    else console.log('Ai_conversations table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ai_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id INTEGER NOT NULL,
+      role TEXT NOT NULL, -- 'user' or 'assistant'
+      content TEXT NOT NULL,
+      structured_data TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating ai_messages table:', err.message);
+    else console.log('Ai_messages table ready.');
+  });
+
+  // =========================================================================
+  // ENHANCEMENTS TABLES (ENH-01 to ENH-10)
+  // =========================================================================
+
+  // 1. Agentic AI Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS agent_actions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_type TEXT NOT NULL,
+      status TEXT DEFAULT 'pending_approval',
+      trigger_event TEXT NOT NULL,
+      proposed_changes TEXT NOT NULL, -- JSON
+      requested_by TEXT,
+      approved_by TEXT,
+      executed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      audit_trail TEXT -- JSON array
+    )
+  `, (err) => {
+    if (err) console.error('Error creating agent_actions table:', err.message);
+    else console.log('Agent_actions table ready.');
+  });
+
+  // 2. Skills & Talent Marketplace Tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS skills (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      skill_name TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
+      normalized_name TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) console.error('Error creating skills table:', err.message);
+    else console.log('Skills table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS employee_skills (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      skill_id INTEGER NOT NULL,
+      proficiency INTEGER NOT NULL, -- 1-5
+      source TEXT DEFAULT 'self_assessed',
+      endorsed_by TEXT, -- JSON array of employeeIds
+      projects_applied INTEGER DEFAULT 0,
+      last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(id),
+      FOREIGN KEY (skill_id) REFERENCES skills(id),
+      UNIQUE(employee_id, skill_id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating employee_skills table:', err.message);
+    else console.log('Employee_skills table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS skill_gaps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      department_id INTEGER NOT NULL,
+      required_skill_id INTEGER NOT NULL,
+      required_proficiency INTEGER NOT NULL,
+      current_coverage REAL DEFAULT 0,
+      risk_level TEXT DEFAULT 'Low',
+      projected_deadline DATE,
+      FOREIGN KEY (department_id) REFERENCES organizations(id),
+      FOREIGN KEY (required_skill_id) REFERENCES skills(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating skill_gaps table:', err.message);
+    else console.log('Skill_gaps table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS gig_marketplace (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      required_skills TEXT NOT NULL, -- JSON array of { skillId, minProficiency }
+      estimated_hours REAL NOT NULL,
+      posted_by INTEGER NOT NULL,
+      department_id INTEGER,
+      bids TEXT, -- JSON array of { employeeId, proposedHours, message, bidDate }
+      assigned_to INTEGER,
+      status TEXT DEFAULT 'open', -- 'open', 'assigned', 'closed'
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (posted_by) REFERENCES employees(id),
+      FOREIGN KEY (assigned_to) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating gig_marketplace table:', err.message);
+    else console.log('Gig_marketplace table ready.');
+  });
+
+  // 3. Predictive Analytics Tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS employee_risk_profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER UNIQUE NOT NULL,
+      attrition_risk_score REAL DEFAULT 0,
+      risk_factors TEXT, -- JSON array of factors
+      last_calculated DATETIME DEFAULT CURRENT_TIMESTAMP,
+      trend TEXT DEFAULT 'stable',
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating employee_risk_profiles table:', err.message);
+    else console.log('Employee_risk_profiles table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS what_if_scenarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scenario_name TEXT NOT NULL,
+      created_by INTEGER NOT NULL,
+      scenario_type TEXT NOT NULL,
+      variables TEXT NOT NULL, -- JSON
+      projected_outcomes TEXT NOT NULL, -- JSON
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating what_if_scenarios table:', err.message);
+    else console.log('What_if_scenarios table ready.');
+  });
+
+  // 4. Hybrid Work Tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS office_floors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      floor_name TEXT NOT NULL,
+      location_id INTEGER NOT NULL,
+      desks TEXT NOT NULL, -- JSON array
+      FOREIGN KEY (location_id) REFERENCES office_locations(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating office_floors table:', err.message);
+    else console.log('Office_floors table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS desk_bookings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      desk_id TEXT NOT NULL,
+      date DATE NOT NULL,
+      clock_in TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating desk_bookings table:', err.message);
+    else console.log('Desk_bookings table ready.');
+  });
+
+  // 5. Nudge Engine Tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS nudge_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nudge_type TEXT UNIQUE NOT NULL,
+      trigger_condition TEXT NOT NULL, -- JSON
+      cooldown_hours INTEGER DEFAULT 24,
+      action_buttons TEXT NOT NULL, -- JSON
+      target_roles TEXT NOT NULL, -- JSON array
+      is_active INTEGER DEFAULT 1
+    )
+  `, (err) => {
+    if (err) console.error('Error creating nudge_rules table:', err.message);
+    else console.log('Nudge_rules table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS nudges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL,
+      nudge_type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      action_buttons TEXT, -- JSON
+      status TEXT DEFAULT 'unread', -- 'unread', 'read', 'action_taken', 'dismissed'
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME,
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating nudges table:', err.message);
+    else console.log('Nudges table ready.');
+  });
+
+  // 6. Explainable AI Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ai_decisions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      decision_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      recommendation TEXT NOT NULL,
+      confidence REAL DEFAULT 0,
+      factors TEXT NOT NULL, -- JSON
+      human_override TEXT, -- JSON
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) console.error('Error creating ai_decisions table:', err.message);
+    else console.log('Ai_decisions table ready.');
+  });
+
+  // 7. Gamification Tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS gamification_profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER UNIQUE NOT NULL,
+      level INTEGER DEFAULT 1,
+      total_xp INTEGER DEFAULT 0,
+      badges TEXT, -- JSON array
+      streaks TEXT, -- JSON
+      kudos_received INTEGER DEFAULT 0,
+      kudos_given INTEGER DEFAULT 0,
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating gamification_profiles table:', err.message);
+    else console.log('Gamification_profiles table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS kudos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_employee_id INTEGER NOT NULL,
+      to_employee_id INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      points INTEGER DEFAULT 10,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (from_employee_id) REFERENCES employees(id),
+      FOREIGN KEY (to_employee_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating kudos table:', err.message);
+    else console.log('Kudos table ready.');
+  });
+
+  // 8. Scenario Org Planning Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS org_scenarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scenario_name TEXT NOT NULL,
+      created_by INTEGER NOT NULL,
+      changes TEXT NOT NULL, -- JSON
+      projected_impact TEXT, -- JSON
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating org_scenarios table:', err.message);
+    else console.log('Org_scenarios table ready.');
+  });
 });
 
 // Promise-based helper functions
