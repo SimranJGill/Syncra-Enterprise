@@ -32,6 +32,10 @@ import AttendanceTab from './attendance/AttendanceTab';
 import LeaveTab from './leave/LeaveTab';
 import PayrollTab from './payroll/PayrollTab';
 import PerformanceTab from './performance/PerformanceTab';
+import ProjectsTab from './project/ProjectsTab';
+import AssetsTab from './asset/AssetsTab';
+import TicketsTab from './ticket/TicketsTab';
+import DocumentsTab from './document/DocumentsTab';
 
 const Dashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'organizations', 'invites', 'roles', 'delegations', 'emailLogs'
@@ -1116,6 +1120,94 @@ const Dashboard = ({ user, onLogout }) => {
               <Award size={20} strokeWidth={1.75} /> Performance Targets
             </button>
 
+            <button
+              onClick={() => { setActiveTab('projects'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'projects' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'projects' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'projects' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <Folder size={20} strokeWidth={1.75} /> Project Tasks
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('assets'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'assets' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'assets' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'assets' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <Monitor size={20} strokeWidth={1.75} /> Asset Inventory
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('tickets'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'tickets' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'tickets' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'tickets' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <MessageSquare size={20} strokeWidth={1.75} /> Help Desk Tickets
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('documents'); setMessage(null); }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'documents' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'documents' ? '#2563eb' : '#64748b',
+                fontWeight: activeTab === 'documents' ? '600' : '500',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '14px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <FileText size={20} strokeWidth={1.75} /> Policy Documents
+            </button>
+
             {(user.role === 'Admin' || user.role === 'Super Admin' || user.permissions?.includes('invite:generate')) && (
               <button
                 onClick={() => { setActiveTab('invites'); setMessage(null); }}
@@ -1754,6 +1846,26 @@ const Dashboard = ({ user, onLogout }) => {
       {/* 2.8 PERFORMANCE TARGETS */}
       {activeTab === 'performance' && (
         <PerformanceTab user={activeUser} />
+      )}
+
+      {/* 2.9 PROJECTS WORKSPACE */}
+      {activeTab === 'projects' && (
+        <ProjectsTab user={activeUser} />
+      )}
+
+      {/* 2.10 ASSET REGISTRY */}
+      {activeTab === 'assets' && (
+        <AssetsTab user={activeUser} />
+      )}
+
+      {/* 2.11 HELP DESK */}
+      {activeTab === 'tickets' && (
+        <TicketsTab user={activeUser} />
+      )}
+
+      {/* 2.12 DOCUMENTS REPOSITORY */}
+      {activeTab === 'documents' && (
+        <DocumentsTab user={activeUser} />
       )}
 
       {/* 3. INVITES TAB: Table of Codes, Copy Code, Generate Codes */}

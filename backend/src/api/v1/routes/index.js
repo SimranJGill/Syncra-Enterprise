@@ -20,6 +20,10 @@ import attendanceRoutes from '#@/modules/attendance/api/v1/routes.js';
 import leaveRoutes from '#@/modules/leave/api/v1/routes.js';
 import payrollRoutes from '#@/modules/payroll/api/v1/routes.js';
 import performanceRoutes from '#@/modules/performance/api/v1/routes.js';
+import projectRoutes from '#@/modules/project/api/v1/routes.js';
+import assetRoutes from '#@/modules/asset/api/v1/routes.js';
+import ticketRoutes from '#@/modules/ticket/api/v1/routes.js';
+import documentRoutes from '#@/modules/document/api/v1/routes.js';
 
 const router = Router();
 
@@ -45,6 +49,10 @@ router.use('/attendance', attendanceRoutes);
 router.use('/leave', leaveRoutes);
 router.use('/payroll', payrollRoutes);
 router.use('/performance', performanceRoutes);
+router.use('/projects', projectRoutes);
+router.use('/assets', assetRoutes);
+router.use('/tickets', ticketRoutes);
+router.use('/documents', documentRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => res.status(200).json({

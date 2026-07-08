@@ -595,6 +595,198 @@ db.serialize(() => {
     if (err) console.error('Error creating performance_reviews table:', err.message);
     else console.log('Performance_reviews table ready.');
   });
+
+  // Create Module 9 - Project Management tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      owner_id INTEGER NOT NULL,
+      status TEXT DEFAULT 'Planning', -- 'Planning', 'Active', 'Completed', 'On Hold'
+      start_date TEXT,
+      end_date TEXT,
+      members TEXT, -- JSON string array of employee IDs
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (owner_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating projects table:', err.message);
+    else console.log('Projects table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      assignee_id INTEGER,
+      priority TEXT DEFAULT 'Medium', -- 'Low', 'Medium', 'High'
+      status TEXT DEFAULT 'To Do', -- 'To Do', 'In Progress', 'Review', 'Completed', 'Blocked'
+      deadline TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id),
+      FOREIGN KEY (assignee_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating tasks table:', err.message);
+    else console.log('Tasks table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS task_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      comment TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (task_id) REFERENCES tasks(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating task_comments table:', err.message);
+    else console.log('Task_comments table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS task_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      file_name TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (task_id) REFERENCES tasks(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating task_attachments table:', err.message);
+    else console.log('Task_attachments table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS task_time_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      hours_logged REAL NOT NULL,
+      date TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (task_id) REFERENCES tasks(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating task_time_logs table:', err.message);
+    else console.log('Task_time_logs table ready.');
+  });
+
+  // Create Module 10 - Asset Management tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL, -- 'Laptop', 'Monitor', 'Phone', 'Furniture', 'Software License'
+      asset_tag TEXT UNIQUE NOT NULL,
+      serial_number TEXT,
+      purchase_date TEXT,
+      purchase_cost REAL,
+      warranty_expiry TEXT,
+      status TEXT DEFAULT 'Available', -- 'Available', 'Assigned', 'Under Repair', 'Retired'
+      assigned_to INTEGER, -- REFERENCES employees(id)
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (assigned_to) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating assets table:', err.message);
+    else console.log('Assets table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS asset_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asset_id INTEGER NOT NULL,
+      employee_id INTEGER,
+      action TEXT NOT NULL, -- 'Assign', 'Return', 'Repair'
+      condition_note TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (asset_id) REFERENCES assets(id),
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating asset_history table:', err.message);
+    else console.log('Asset_history table ready.');
+  });
+
+  // Create Module 11 - Help Desk tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tickets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      raised_by INTEGER NOT NULL, -- REFERENCES users(id)
+      category TEXT NOT NULL, -- 'IT', 'HR', 'Facilities', 'Payroll', 'Other'
+      subject TEXT NOT NULL,
+      description TEXT,
+      priority TEXT DEFAULT 'Medium', -- 'Low', 'Medium', 'High', 'Urgent'
+      status TEXT DEFAULT 'Open', -- 'Open', 'In Progress', 'Resolved', 'Closed'
+      assigned_to INTEGER, -- REFERENCES users(id)
+      linked_asset_id INTEGER, -- REFERENCES assets(id)
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (raised_by) REFERENCES users(id),
+      FOREIGN KEY (assigned_to) REFERENCES users(id),
+      FOREIGN KEY (linked_asset_id) REFERENCES assets(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating tickets table:', err.message);
+    else console.log('Tickets table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ticket_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      comment TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating ticket_comments table:', err.message);
+    else console.log('Ticket_comments table ready.');
+  });
+
+  // Create Module 12 - Document Management tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL, -- 'Policy', 'Template', 'Handbook', 'Legal', 'Other'
+      file_url TEXT NOT NULL,
+      uploaded_by INTEGER NOT NULL, -- REFERENCES users(id)
+      version TEXT DEFAULT '1.0',
+      visibility TEXT DEFAULT 'org-wide', -- 'org-wide', 'department-specific', 'role-restricted'
+      target_id TEXT, -- departmentId (int) or roleName (text)
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (uploaded_by) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating documents table:', err.message);
+    else console.log('Documents table ready.');
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS document_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      document_id INTEGER NOT NULL,
+      version TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      uploaded_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (document_id) REFERENCES documents(id),
+      FOREIGN KEY (uploaded_by) REFERENCES users(id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating document_versions table:', err.message);
+    else console.log('Document_versions table ready.');
+  });
 });
 
 // Promise-based helper functions
