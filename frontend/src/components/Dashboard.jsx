@@ -33,7 +33,13 @@ import {
   Sparkles,
   Check,
   Play,
-  AlertCircle
+  AlertCircle,
+  Brain,
+  Home,
+  Gamepad2,
+  Mail,
+  LogOut,
+  Settings
 } from 'lucide-react';
 
 import OrganizationsTab from './org/OrganizationsTab';
@@ -124,7 +130,7 @@ const Dashboard = ({ user, onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [expandedNodes, setExpandedNodes] = useState({});
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
 
   // Advanced Demo Features States
   const [impersonatedRole, setImpersonatedRole] = useState(null);
@@ -875,9 +881,9 @@ const Dashboard = ({ user, onLogout }) => {
       display: 'flex',
       width: '100%',
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: 'var(--dashboard-bg)',
       fontFamily: 'var(--font-sans)',
-      color: '#1e293b'
+      color: 'var(--text-primary)'
     }}>
       {/* Toast message alert */}
       {message && (
@@ -897,8 +903,8 @@ const Dashboard = ({ user, onLogout }) => {
       {/* Left Sidebar */}
       <aside style={{
         width: '260px',
-        backgroundColor: '#ffffff',
-        borderRight: '1px solid #e2e8f0',
+        backgroundColor: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--sidebar-border)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -918,14 +924,14 @@ const Dashboard = ({ user, onLogout }) => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <span style={{ fontSize: '14px', color: '#ffffff', fontWeight: 'bold' }}>⚙</span>
+              <Settings size={14} color="#ffffff" />
             </div>
             <span style={{
               fontFamily: 'var(--font-display)',
               fontSize: '16px',
               fontWeight: '700',
               letterSpacing: '0.5px',
-              color: '#0f172a'
+              color: 'var(--header-title-color)'
             }}>
               WORKFORCE OS
             </span>
@@ -1284,7 +1290,7 @@ const Dashboard = ({ user, onLogout }) => {
                 transition: 'all 0.15s'
               }}
             >
-              <span>🤖</span> Agent Queue
+              <Bot size={20} strokeWidth={1.75} /> Agent Queue
             </button>
 
             <button
@@ -1306,7 +1312,7 @@ const Dashboard = ({ user, onLogout }) => {
                 transition: 'all 0.15s'
               }}
             >
-              <span>🧠</span> Skills Marketplace
+              <Brain size={20} strokeWidth={1.75} /> Skills Marketplace
             </button>
 
             <button
@@ -1328,7 +1334,7 @@ const Dashboard = ({ user, onLogout }) => {
                 transition: 'all 0.15s'
               }}
             >
-              <span>📊</span> Workforce Simulator
+              <BarChart size={20} strokeWidth={1.75} /> Workforce Simulator
             </button>
 
             <button
@@ -1350,7 +1356,7 @@ const Dashboard = ({ user, onLogout }) => {
                 transition: 'all 0.15s'
               }}
             >
-              <span>🏠</span> Hybrid Work Hub
+              <Home size={20} strokeWidth={1.75} /> Hybrid Work Hub
             </button>
 
             <button
@@ -1372,7 +1378,7 @@ const Dashboard = ({ user, onLogout }) => {
                 transition: 'all 0.15s'
               }}
             >
-              <span>🎮</span> Gamification & Kudos
+              <Gamepad2 size={20} strokeWidth={1.75} /> Gamification & Kudos
             </button>
 
             <button
@@ -1394,7 +1400,7 @@ const Dashboard = ({ user, onLogout }) => {
                 transition: 'all 0.15s'
               }}
             >
-              <span>🏢</span> Scenario Org Planner
+              <Building2 size={20} strokeWidth={1.75} /> Scenario Org Planner
             </button>
 
             {(user.role === 'Admin' || user.role === 'Super Admin' || user.permissions?.includes('invite:generate')) && (
@@ -1417,7 +1423,7 @@ const Dashboard = ({ user, onLogout }) => {
                   transition: 'all 0.15s'
                 }}
               >
-                <span>✉</span> Onboarding Invites
+                <Mail size={20} strokeWidth={1.75} /> Onboarding Invites
               </button>
             )}
 
@@ -1487,7 +1493,7 @@ const Dashboard = ({ user, onLogout }) => {
                   transition: 'all 0.15s'
                 }}
               >
-                <span>✉</span> Email Simulator
+                <Mail size={20} strokeWidth={1.75} /> Email Simulator
               </button>
             )}
           </nav>
@@ -1515,7 +1521,7 @@ const Dashboard = ({ user, onLogout }) => {
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
         >
-          <span>🚪</span> Logout Account
+          <LogOut size={20} strokeWidth={1.75} /> Logout Account
         </button>
       </aside>
 
@@ -1533,14 +1539,14 @@ const Dashboard = ({ user, onLogout }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: '1px solid var(--sidebar-border)',
           paddingBottom: '20px'
         }}>
           <h2 style={{
             fontFamily: 'var(--font-display)',
             fontSize: '24px',
             fontWeight: 'bold',
-            color: '#0f172a',
+            color: 'var(--header-title-color)',
             textTransform: 'capitalize'
           }}>
             {activeTab === 'overview' ? 'Dashboard' : activeTab.replace(/([A-Z])/g, ' $1')}
@@ -1553,32 +1559,6 @@ const Dashboard = ({ user, onLogout }) => {
               {/* Notification Center */}
               <NotificationsCenter user={activeUser} />
 
-              {/* Dark Mode Theme Toggle */}
-              <button
-                onClick={() => {
-                  const html = document.documentElement;
-                  if (html.classList.contains('dark')) {
-                    html.classList.remove('dark');
-                  } else {
-                    html.classList.add('dark');
-                  }
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  outline: 'none',
-                  fontSize: '18px'
-                }}
-                title="Toggle Dark Mode"
-              >
-                🌓
-              </button>
-
               {/* Impersonator selector (Admins only) */}
               {(user.role === 'Super Admin' || user.role === 'Admin') && (
                 <select
@@ -1587,10 +1567,10 @@ const Dashboard = ({ user, onLogout }) => {
                   style={{
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--sidebar-border)',
                     fontSize: '12px',
-                    background: '#eff6ff',
-                    color: '#2563eb',
+                    background: 'var(--menu-active-bg)',
+                    color: 'var(--menu-active-color)',
                     fontWeight: 'bold',
                     cursor: 'pointer'
                   }}
@@ -1610,10 +1590,10 @@ const Dashboard = ({ user, onLogout }) => {
                 gap: '10px',
                 padding: '6px 14px',
                 borderRadius: '20px',
-                backgroundColor: '#e2e8f0',
+                backgroundColor: 'var(--sidebar-border)',
                 fontSize: '13px',
                 fontWeight: '500',
-                color: '#334155'
+                color: 'var(--text-primary)'
               }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
                 Welcome, {user.name} ({activeUserRole})
@@ -1621,7 +1601,7 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
 
             {/* Vertical separator */}
-            <div style={{ width: '1px', height: '24px', backgroundColor: '#e2e8f0' }} />
+            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--sidebar-border)' }} />
 
             {/* Far right Theme toggle */}
             <button 
@@ -1633,14 +1613,14 @@ const Dashboard = ({ user, onLogout }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 padding: '6px',
                 borderRadius: '6px',
                 transition: 'background-color 0.15s'
               }}
               title="Toggle Theme"
               onClick={() => setIsDarkMode(!isDarkMode)}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--sidebar-border)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               {isDarkMode ? <Sun size={20} strokeWidth={1.75} /> : <Moon size={20} strokeWidth={1.75} />}
@@ -1964,13 +1944,13 @@ const Dashboard = ({ user, onLogout }) => {
                     <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>TEAM REAL-TIME ACTIVITY STREAM</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '180px', overflowY: 'auto' }}>
                       <div style={{ fontSize: '13px', color: '#f8fafc' }}>
-                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[17:28]</span> 🤖 OnboardingAgent proposed welcome kits setup for new developer.
+                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[17:28]</span> OnboardingAgent proposed welcome kits setup for new developer.
                       </div>
                       <div style={{ fontSize: '13px', color: '#f8fafc' }}>
-                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[16:45]</span> 👤 Priya Sharma reserved office Desk 2 for tomorrow.
+                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[16:45]</span> Priya Sharma reserved office Desk 2 for tomorrow.
                       </div>
                       <div style={{ fontSize: '13px', color: '#f8fafc' }}>
-                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[15:10]</span> 💰 FinanceAgent completed August payroll projections.
+                        <span style={{ color: '#94a3b8', marginRight: '10px' }}>[15:10]</span> FinanceAgent completed August payroll projections.
                       </div>
                     </div>
                   </div>
@@ -3208,7 +3188,7 @@ const Dashboard = ({ user, onLogout }) => {
         )}
       </div>
 
-      <AIAssistantWidget activeTab={activeTab} />
+      <AIAssistantWidget activeTab={activeTab} setActiveTab={setActiveTab} />
 
       </main>
     </div>

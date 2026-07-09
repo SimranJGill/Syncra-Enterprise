@@ -1,21 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Steel Blue and Indigo Professional Palette */
-  --pastel-bg: hsl(210, 20%, 98%);
-  --pastel-red: hsl(221, 83%, 53%);
-  --pastel-red-hover: hsl(221, 83%, 45%);
-  --pastel-red-light: hsl(221, 85%, 96%);
-  --pastel-yellow: hsl(199, 89%, 48%);
-  --pastel-yellow-hover: hsl(199, 89%, 40%);
-  --pastel-yellow-light: hsl(199, 85%, 95%);
-  --pastel-orange-light: hsl(210, 25%, 96%);
+  /* Dynamic pastel backgrounds based on new palette */
+  --pastel-bg: #FFF1D5;
+  --pastel-red: #9FB3DF;
+  --pastel-red-hover: #536d9d;
+  --pastel-red-light: rgba(158, 198, 243, 0.35); /* Soft sky blue */
+  --pastel-yellow: #9EC6F3;
+  --pastel-yellow-hover: #536d9d;
+  --pastel-yellow-light: rgba(189, 221, 228, 0.45); /* Soft pastel teal */
+  --pastel-orange-light: #FFF1D5;
   
   /* Text and details */
-  --text-dark: hsl(222, 47%, 11%);
-  --text-muted: hsl(215, 16%, 47%);
-  --border-color: rgba(148, 163, 184, 0.18);
-  --border-focus: hsl(221, 83%, 65%);
+  --text-dark: #123458; /* Deep navy */
+  --text-muted: #536d9d; /* Muted periwinkle */
+  --border-color: #BDDDE4; /* Pastel teal border */
+  --border-focus: #9EC6F3;
+
+  /* Theme variables for Dashboard layout */
+  --dashboard-bg: #FFF1D5;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: rgba(18, 52, 88, 0.15); /* More visible partition line in light mode */
+  --card-bg: rgba(255, 255, 255, 0.75);
+  --card-item-bg: rgba(18, 52, 88, 0.05); /* Translucent dark navy for card list items */
+  --text-primary: #000000;
+  --text-secondary: #536d9d;
+  --header-title-color: #000000;
+  --menu-active-bg: #9EC6F3;
+  --menu-active-color: #000000;
   
   /* Glassmorphism */
   --glass-bg: rgba(255, 255, 255, 0.90);
@@ -407,7 +419,7 @@ body::after {
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-dark);
+  color: #000000;
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: 10px;
@@ -1218,6 +1230,10 @@ body:has(.gallery-wrapper) {
    ========================================================================== */
 .tree-container {
   font-family: var(--font-body);
+  background: var(--card-bg) !important;
+  border: 1px solid var(--sidebar-border) !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02) !important;
 }
 
 .tree-root-wrapper {
@@ -1259,17 +1275,27 @@ body:has(.gallery-wrapper) {
   border-top: 1px solid #cbd5e1;
 }
 
-.tree-node-content {
+.tree-node-content,
+.org-floating-tile {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 12px;
   background: #ffffff;
   border: 1px solid rgba(74, 46, 42, 0.08);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   font-size: 13.5px;
   color: var(--text-dark);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tree-node-content:hover,
+.org-floating-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
 }
 
 .tree-root-node {
@@ -1376,11 +1402,26 @@ div[role="button"]:focus-visible {
 
 /* Dark Mode Override variables */
 html.dark {
-  --pastel-bg: hsl(222, 47%, 8%);
-  --text-dark: hsl(210, 20%, 98%);
-  --text-muted: hsl(215, 16%, 70%);
-  --border-color: rgba(255, 255, 255, 0.12);
-  --glass-bg: rgba(15, 23, 42, 0.95);
+  --pastel-bg: #030303;
+  --text-dark: #F1EFEC;
+  --text-muted: #D4C9BE;
+  --border-color: rgba(212, 201, 190, 0.15);
+  --glass-bg: rgba(18, 52, 88, 0.95);
+  
+  --pastel-yellow-light: rgba(18, 52, 88, 0.15);
+  --pastel-red-light: rgba(3, 3, 3, 0.4);
+
+  /* Theme variables for Dashboard layout in Dark Mode */
+  --dashboard-bg: #030303;
+  --sidebar-bg: #123458;
+  --sidebar-border: rgba(212, 201, 190, 0.15);
+  --card-bg: rgba(18, 52, 88, 0.6);
+  --card-item-bg: rgba(255, 255, 255, 0.03); /* Translucent white for dark mode card items */
+  --text-primary: #F1EFEC;
+  --text-secondary: #D4C9BE;
+  --header-title-color: #F1EFEC;
+  --menu-active-bg: rgba(241, 239, 236, 0.15);
+  --menu-active-color: #F1EFEC;
 }
 
 html.dark body {
@@ -1388,16 +1429,28 @@ html.dark body {
   color: var(--text-dark) !important;
 }
 
-html.dark .auth-card,
+html.dark .auth-card {
+  background-color: var(--card-bg) !important;
+  color: var(--text-dark) !important;
+  border-color: var(--sidebar-border) !important;
+}
+
 html.dark .ai-chat-drawer,
-html.dark .tree-node-content,
 html.dark select,
 html.dark input,
 html.dark table,
 html.dark tr {
-  background-color: hsl(222, 47%, 12%) !important;
+  background-color: #123458 !important;
   color: var(--text-dark) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(212, 201, 190, 0.15) !important;
+}
+
+html.dark .tree-node-content,
+html.dark .org-floating-tile {
+  background-color: var(--card-bg) !important;
+  color: var(--text-dark) !important;
+  border-color: rgba(212, 201, 190, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
 html.dark tr:hover {
@@ -1492,19 +1545,54 @@ html.dark .ai-chat-drawer th, html.dark .ai-chat-drawer td {
    COMMAND CENTER V2.0 CORE DESIGN TOKENS
    ========================================================================== */
 .glass-card {
-  background: rgba(30, 41, 59, 0.7) !important;
+  background: var(--card-bg) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+  border: 1px solid var(--sidebar-border) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Styling adjustments for elements inside glass-cards and auth-cards to support light/dark modes */
+.glass-card h3,
+.glass-card h4,
+.auth-card h3,
+.auth-card h4 {
+  color: var(--text-secondary) !important;
+}
+
+/* Inactive text inside glass-card list items */
+.glass-card div[style*="color: white"],
+.glass-card div[style*="color: rgb(255, 255, 255)"],
+.glass-card span[style*="color: white"],
+.glass-card span[style*="color: rgb(255, 255, 255)"] {
+  color: var(--text-primary) !important;
+}
+
+.glass-card div[style*="background: rgba(255, 255, 255, 0.02)"],
+.glass-card div[style*="background:rgba(255,255,255,0.02)"] {
+  background: var(--card-item-bg) !important;
+}
+
+/* Muted spans and text inside glass cards */
+.glass-card span[style*="color: #94a3b8"],
+.glass-card div[style*="color: #94a3b8"],
+.glass-card span[style*="color: rgb(148, 163, 184)"],
+.glass-card div[style*="color: rgb(148, 163, 184)"] {
+  color: var(--text-secondary) !important;
+}
+
+/* Border separators inside glass cards */
+.glass-card div[style*="border-top: 1px solid rgba(255, 255, 255, 0.06)"],
+.glass-card div[style*="border-top: 1px solid rgba(255,255,255,0.06)"] {
+  border-top: 1px solid var(--sidebar-border) !important;
 }
 
 html.dark {
-  --bg-main: #0F172A !important;
-  --bg-surface: #1E293B !important;
-  --border-color: #334155 !important;
-  --text-main: #F8FAFC !important;
-  --text-muted: #94A3B8 !important;
+  --bg-main: #030303 !important;
+  --bg-surface: #123458 !important;
+  --border-color: rgba(212, 201, 190, 0.15) !important;
+  --text-main: #F1EFEC !important;
+  --text-muted: #D4C9BE !important;
 }
 
 .bento-grid {
@@ -1563,6 +1651,108 @@ html.dark {
   100% { transform: translateX(-100%); }
 }
 
+/* Sidebar nav buttons styling overrides */
+aside nav button {
+  color: var(--text-secondary) !important;
+  background-color: transparent !important;
+}
 
+aside nav button[style*="background-color: rgb(239, 246, 255)"],
+aside nav button[style*="background-color: #eff6ff"],
+aside nav button[style*="background-color:#eff6ff"] {
+  background-color: var(--menu-active-bg) !important;
+  color: var(--menu-active-color) !important;
+  font-weight: 600 !important;
+}
 
+aside nav button:hover {
+  background-color: var(--sidebar-border) !important;
+}
 
+/* Light Mode Only: Override hardcoded white/light-gray text styles on non-button elements */
+html:not(.dark) main :not(button)[style*="color: white"],
+html:not(.dark) main :not(button)[style*="color:rgb(255, 255, 255)"],
+html:not(.dark) main :not(button)[style*="color: rgb(255, 255, 255)"],
+html:not(.dark) main :not(button)[style*="color: #f8fafc"],
+html:not(.dark) main :not(button)[style*="color:#f8fafc"],
+html:not(.dark) main :not(button)[style*="color: rgb(248, 250, 252)"],
+html:not(.dark) main :not(button)[style*="color:rgb(248, 250, 252)"],
+html:not(.dark) main :not(button)[style*="color: #ffffff"],
+html:not(.dark) main :not(button)[style*="color:#ffffff"] {
+  color: #000000 !important;
+}
+
+html:not(.dark) main :not(button)[style*="color: #94a3b8"],
+html:not(.dark) main :not(button)[style*="color:#94a3b8"],
+html:not(.dark) main :not(button)[style*="color: rgb(148, 163, 184)"],
+html:not(.dark) main :not(button)[style*="color:rgb(148, 163, 184)"],
+html:not(.dark) main :not(button)[style*="color:rgb(148,163,184)"] {
+  color: var(--text-secondary) !important;
+}
+
+/* Light Mode Only: SVG Text color overrides */
+html:not(.dark) main svg text[fill="white"],
+html:not(.dark) main svg text[fill="#ffffff"] {
+  fill: #000000 !important;
+}
+
+/* Light Mode Only: Table text, background, and border overrides */
+html:not(.dark) main table {
+  background-color: rgba(18, 52, 88, 0.02) !important;
+  color: #000000 !important;
+}
+
+html:not(.dark) main table th {
+  background-color: rgba(18, 52, 88, 0.06) !important;
+  color: #000000 !important;
+}
+
+html:not(.dark) main table td {
+  color: #000000 !important;
+}
+
+html:not(.dark) main table tr,
+html:not(.dark) main table th,
+html:not(.dark) main table td,
+html:not(.dark) main table tr[style*="border"],
+html:not(.dark) main table th[style*="border"],
+html:not(.dark) main table td[style*="border"] {
+  border-color: rgba(18, 52, 88, 0.15) !important;
+  border-bottom-color: rgba(18, 52, 88, 0.15) !important;
+}
+
+/* Light Mode Only: Translucent tree node cards */
+html:not(.dark) .tree-node-content,
+html:not(.dark) .org-floating-tile {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border: 1px solid rgba(18, 52, 88, 0.12) !important;
+  color: #000000 !important;
+  box-shadow: 0 6px 16px rgba(18, 52, 88, 0.06) !important;
+}
+
+html:not(.dark) .tree-node-content:hover,
+html:not(.dark) .org-floating-tile:hover {
+  background: rgba(158, 198, 243, 0.25) !important;
+  box-shadow: 0 12px 28px rgba(18, 52, 88, 0.12) !important;
+}
+
+html:not(.dark) .tree-root-node {
+  background: rgba(18, 52, 88, 0.03) !important;
+  border: 1px solid rgba(18, 52, 88, 0.15) !important;
+}
+
+/* Selected tree node styling in light mode */
+html:not(.dark) .tree-node-content[style*="border-color: rgb(37, 99, 235)"],
+html:not(.dark) .tree-node-content[style*="border-color:rgb(37, 99, 235)"],
+html:not(.dark) .tree-node-content[style*="border-color: #2563eb"],
+html:not(.dark) .tree-node-content[style*="border-color:#2563eb"] {
+  background: rgba(158, 198, 243, 0.35) !important;
+  border-color: #9EC6F3 !important;
+  color: #000000 !important;
+  box-shadow: 0 8px 20px rgba(18, 52, 88, 0.08) !important;
+}
+
+/* Dark Mode Only: Override tree node names (e.g. Main Corp) to use the sandstone/taupe color */
+html.dark .node-name {
+  color: #D4C9BE !important;
+}

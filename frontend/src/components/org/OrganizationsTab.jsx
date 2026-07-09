@@ -527,10 +527,7 @@ const OrganizationsTab = ({ user }) => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '6px 12px',
-                background: '#ffffff',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
+                padding: '6px 12px'
               }}
             >
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
@@ -725,22 +722,9 @@ const OrganizationsTab = ({ user }) => {
           <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.3fr', gap: '32px' }}>
             <div className="auth-card" style={{ padding: '30px', maxWidth: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, fontWeight: '700', fontSize: '18px', color: '#1e293b' }}>
+                <h3 style={{ margin: 0, fontWeight: '700', fontSize: '18px', color: 'var(--text-secondary)' }}>
                   Enterprise Department Tree
                 </h3>
-                {isAdmin && (
-                  <button 
-                    className="btn-primary" 
-                    style={{ padding: '6px 12px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}
-                    onClick={() => {
-                      setEditingDept(null);
-                      setDeptForm({ name: '', code: '', parentId: '', managerId: '', status: 'Active' });
-                      setShowAddDept(true);
-                    }}
-                  >
-                    <Plus size={14} /> Add Department
-                  </button>
-                )}
               </div>
 
               <div className="tree-container" style={{ background: '#fdfdfd', border: '1px solid rgba(74, 46, 42, 0.08)', borderRadius: '12px', padding: '24px', minHeight: '300px' }}>
@@ -834,9 +818,8 @@ const OrganizationsTab = ({ user }) => {
               </div>
             </div>
 
-            {/* Department add/edit drawer panel */}
             <div className="auth-card" style={{ padding: '30px', height: 'fit-content' }}>
-              <h3 style={{ margin: 0, fontWeight: '700', fontSize: '18px', color: '#1e293b', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontWeight: '700', fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                 {editingDept ? '✏️ Edit Department' : '➕ Add Department Node'}
               </h3>
               {isAdmin ? (
@@ -1065,14 +1048,14 @@ const OrganizationsTab = ({ user }) => {
                 {locations.map(loc => (
                   <div 
                     key={loc.id}
+                    className="org-floating-tile"
                     style={{
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '16px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      background: '#ffffff'
+                      padding: '16px 20px',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <div>
@@ -1210,14 +1193,14 @@ const OrganizationsTab = ({ user }) => {
                 {shifts.map(shift => (
                   <div 
                     key={shift.id}
+                    className="org-floating-tile"
                     style={{
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '16px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      background: '#ffffff'
+                      padding: '16px 20px',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <div>
@@ -1493,10 +1476,7 @@ const OrganizationsTab = ({ user }) => {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '8px',
-                          padding: '8px 14px',
-                          background: '#eff6ff',
-                          borderRadius: '8px',
-                          border: '1px solid #bfdbfe'
+                          padding: '8px 14px'
                         }}
                       >
                         <Crown size={16} style={{ color: '#eab308' }} />

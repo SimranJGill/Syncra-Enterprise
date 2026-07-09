@@ -158,17 +158,35 @@ const InsightsTab = ({ user }) => {
   const highRiskEmployees = simNodes.filter(n => n.risk_score === 'High');
   const benchEmployees = simNodes.filter(n => n.team_size === 0 && n.tenure > 30); // Placeholder unassigned reports
 
+  const formatNarrativeText = (text) => {
+    if (!text) return '';
+    let formatted = text;
+    // Strip out 📊 emoji
+    formatted = formatted.replace(/📊/g, '');
+    // Parse headers (e.g. ### Title)
+    formatted = formatted.replace(/^### (.*$)/gim, '<h3 style="margin: 0 0 12px 0; font-size: 16.5px; font-weight: 700; color: var(--text-secondary);">$1</h3>');
+    // Parse bold text (e.g. **bold**)
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Parse italic text (e.g. *italic*)
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Parse bullets (e.g. - list item)
+    formatted = formatted.replace(/^- (.*$)/gim, '• $1');
+    // Replace newlines with breaks
+    formatted = formatted.replace(/\n/g, '<br/>');
+    return formatted;
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       
       {/* Narrative highlights summary */}
       {narrative && (
         <div style={{
-          background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
-          border: '1px solid #bfdbfe',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--sidebar-border)',
           borderRadius: '16px',
           padding: '24px',
-          boxShadow: 'var(--shadow-sm)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.02)',
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -182,8 +200,8 @@ const InsightsTab = ({ user }) => {
             </h4>
           </div>
           <div 
-            style={{ fontSize: '14.5px', color: '#334155', lineHeight: '1.6', fontFamily: 'var(--font-body)' }}
-            dangerouslySetInnerHTML={{ __html: narrative.replace(/\n/g, '<br/>') }}
+            style={{ fontSize: '14.5px', color: '#D4C9BE', lineHeight: '1.6', fontFamily: 'var(--font-body)' }}
+            dangerouslySetInnerHTML={{ __html: formatNarrativeText(narrative) }}
           />
         </div>
       )}
@@ -232,7 +250,7 @@ const InsightsTab = ({ user }) => {
           </div>
 
           {/* SVG canvas */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', height: '400px', position: 'relative' }}>
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--sidebar-border)', borderRadius: '12px', overflow: 'hidden', height: '400px', position: 'relative' }}>
             <svg 
               ref={svgRef} 
               width="100%" 

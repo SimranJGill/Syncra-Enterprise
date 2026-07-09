@@ -105,7 +105,7 @@ router.get('/narrative', authenticateToken, async (req, res) => {
 
     // Compile narrative summary
     const narrativeText = `
-### 📊 AI Workforce Insights Narrative
+### AI Workforce Insights Narrative
 
 The enterprise currently operates with **${totalEmp.count} active employees** mapped across **${totalDept.count} corporate departments**. 
 

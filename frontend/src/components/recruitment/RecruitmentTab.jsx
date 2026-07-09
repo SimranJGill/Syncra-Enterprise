@@ -315,17 +315,19 @@ export default function RecruitmentTab({ user, onPrefillOnboarding }) {
                 onDrop={(e) => handleDrop(e, col)}
                 style={{
                   minWidth: '260px',
-                  background: '#f8fafc',
+                  background: 'var(--card-bg)',
                   borderRadius: '16px',
                   padding: '16px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px',
-                  border: '1px solid #e2e8f0'
+                  border: '1px solid var(--sidebar-border)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #cbd5e1', paddingBottom: '8px' }}>
-                  <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#1e293b' }}>{col}</span>
+                  <span style={{ fontWeight: 'bold', fontSize: '13px', color: 'var(--text-secondary)' }}>{col}</span>
                   <span style={{ fontSize: '11px', background: '#cbd5e1', color: '#475569', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
                     {list.length}
                   </span>
@@ -335,22 +337,21 @@ export default function RecruitmentTab({ user, onPrefillOnboarding }) {
                   {list.map(cand => (
                     <div
                       key={cand.id}
+                      className="org-floating-tile"
                       draggable={true}
                       onDragStart={(e) => handleDragStart(e, cand.id)}
                       style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '12px',
                         padding: '12px',
                         cursor: 'grab',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '8px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 'bold', color: '#1e293b' }}>{cand.name}</h4>
+                        <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{cand.name}</h4>
                         <span style={{ fontSize: '10px', color: '#64748b' }}>{cand.designation_title || 'General Applicant'}</span>
                       </div>
 
@@ -422,7 +423,7 @@ export default function RecruitmentTab({ user, onPrefillOnboarding }) {
 
       {/* 2. OFFERS DIRECTORY */}
       {activeView === 'offers' && (
-        <div className="auth-card" style={{ padding: '24px', background: '#ffffff', border: '1px solid #cbd5e1', maxWidth: '100%' }}>
+        <div className="auth-card" style={{ padding: '24px', maxWidth: '100%' }}>
           <h3 style={{ margin: 0, fontWeight: '700', fontSize: '18px', color: '#1e293b', marginBottom: '16px' }}>
             HR Offer Disbursal Pipeline
           </h3>
@@ -537,7 +538,7 @@ export default function RecruitmentTab({ user, onPrefillOnboarding }) {
       {/* Add Candidate Modal */}
       {showAddForm && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
-          <form onSubmit={handleAddCandidate} className="auth-card" style={{ padding: '30px', maxWidth: '450px', background: 'white' }}>
+          <form onSubmit={handleAddCandidate} className="auth-card" style={{ padding: '30px', maxWidth: '450px' }}>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Register Job Candidate</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <input
@@ -604,7 +605,7 @@ export default function RecruitmentTab({ user, onPrefillOnboarding }) {
       {/* Schedule Interview Modal */}
       {showInterviewForm && selectedCandidate && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
-          <form onSubmit={handleScheduleInterview} className="auth-card" style={{ padding: '30px', maxWidth: '400px', background: 'white' }}>
+          <form onSubmit={handleScheduleInterview} className="auth-card" style={{ padding: '30px', maxWidth: '400px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', marginBottom: '16px' }}>Schedule Interview</h3>
             <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#64748b' }}>Booking meeting slot for: <strong>{selectedCandidate.name}</strong></p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -644,7 +645,7 @@ export default function RecruitmentTab({ user, onPrefillOnboarding }) {
       {/* Offer Form Modal */}
       {showOfferForm && selectedCandidate && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
-          <form onSubmit={handleCreateOffer} className="auth-card" style={{ padding: '30px', maxWidth: '400px', background: 'white' }}>
+          <form onSubmit={handleCreateOffer} className="auth-card" style={{ padding: '30px', maxWidth: '400px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', marginBottom: '16px' }}>Draft Employment Offer</h3>
             <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#64748b' }}>Drafting contract parameters for: <strong>{selectedCandidate.name}</strong></p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

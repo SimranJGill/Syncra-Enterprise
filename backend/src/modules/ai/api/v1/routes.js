@@ -38,6 +38,77 @@ router.post('/query', authenticateToken, async (req, res) => {
     let contextData = '';
     let isTable = false;
     let finalConvId = conversationId;
+    let navigationTab = null;
+
+    // Check for navigation commands
+    const navQuery = userQuery.replace(/[^a-z0-9\s]/g, '').trim();
+    const isNavCommand = navQuery.includes('open') || 
+                         navQuery.includes('go to') || 
+                         navQuery.includes('navigate') || 
+                         navQuery.includes('show tab') ||
+                         navQuery.includes('switch to') ||
+                         navQuery.includes('take me to') ||
+                         navQuery.includes('inspect tab') ||
+                         navQuery === 'attendance clock' ||
+                         navQuery === 'attendance' ||
+                         navQuery === 'workforce insights' ||
+                         navQuery === 'insights' ||
+                         navQuery === 'employees directory' ||
+                         navQuery === 'directory' ||
+                         navQuery === 'organization management' ||
+                         navQuery === 'organizations' ||
+                         navQuery === 'audit log compliance' ||
+                         navQuery === 'audit logs' ||
+                         navQuery === 'recruitment board' ||
+                         navQuery === 'recruitment' ||
+                         navQuery === 'leave management' ||
+                         navQuery === 'leave' ||
+                         navQuery === 'payroll remuneration' ||
+                         navQuery === 'payroll' ||
+                         navQuery === 'performance targets' ||
+                         navQuery === 'performance' ||
+                         navQuery === 'project tasks' ||
+                         navQuery === 'projects' ||
+                         navQuery === 'asset inventory' ||
+                         navQuery === 'assets' ||
+                         navQuery === 'help desk tickets' ||
+                         navQuery === 'tickets';
+                         
+    if (isNavCommand) {
+      if (navQuery.includes('attendance') || navQuery.includes('clock') || navQuery.includes('checkin') || navQuery.includes('timecard')) {
+        navigationTab = 'attendance';
+      } else if (navQuery.includes('payroll') || navQuery.includes('salary') || navQuery.includes('salaries') || navQuery.includes('payslip')) {
+        navigationTab = 'payroll';
+      } else if (navQuery.includes('recruitment') || navQuery.includes('candidate') || navQuery.includes('interview') || navQuery.includes('offer')) {
+        navigationTab = 'recruitment';
+      } else if (navQuery.includes('project') || navQuery.includes('task') || navQuery.includes('kanban') || navQuery.includes('todo')) {
+        navigationTab = 'projects';
+      } else if (navQuery.includes('asset') || navQuery.includes('hardware') || navQuery.includes('laptop') || navQuery.includes('inventory')) {
+        navigationTab = 'assets';
+      } else if (navQuery.includes('audit') || navQuery.includes('compliance') || navQuery.includes('log') || navQuery.includes('event')) {
+        navigationTab = 'auditLogs';
+      } else if (navQuery.includes('employee') || navQuery.includes('directory') || navQuery.includes('people') || navQuery.includes('staff')) {
+        navigationTab = 'employees';
+      } else if (navQuery.includes('organization') || navQuery.includes('department') || navQuery.includes('dept') || navQuery.includes('tree')) {
+        navigationTab = 'organizations';
+      } else if (navQuery.includes('leave') || navQuery.includes('vacation') || navQuery.includes('holiday') || navQuery.includes('pto')) {
+        navigationTab = 'leave';
+      } else if (navQuery.includes('overview') || navQuery.includes('dashboard') || navQuery.includes('home')) {
+        navigationTab = 'overview';
+      } else if (navQuery.includes('insight') || navQuery.includes('analytic') || navQuery.includes('chart') || navQuery.includes('graph') || navQuery.includes('metric')) {
+        navigationTab = 'insights';
+      } else if (navQuery.includes('performance') || navQuery.includes('target') || navQuery.includes('goal') || navQuery.includes('review') || navQuery.includes('kpi')) {
+        navigationTab = 'performance';
+      } else if (navQuery.includes('ticket') || navQuery.includes('support') || navQuery.includes('helpdesk') || navQuery.includes('help desk')) {
+        navigationTab = 'tickets';
+      } else {
+        const dbDepts = await dbAll("SELECT name FROM organizations");
+        const matchesDept = dbDepts.some(d => navQuery.includes(d.name.toLowerCase()));
+        if (matchesDept) {
+          navigationTab = 'organizations';
+        }
+      }
+    }
 
     // Persist or retrieve conversation session
     if (!finalConvId) {
@@ -49,14 +120,28 @@ router.post('/query', authenticateToken, async (req, res) => {
     // Save User message
     await dbRun('INSERT INTO ai_messages (conversation_id, role, content) VALUES (?, "user", ?)', [finalConvId, query]);
 
-    // 1. Contextual awareness prefix
-    let contextualPrefix = '';
-    if (activeTab) {
-      contextualPrefix = `*Context: I see you are currently inspecting the **${activeTab.toUpperCase()}** management hub.* \n\n`;
-    }
+    // 2. Intent parsing & dynamic database search tools
+    const matchKeywords = (query, keywordsArray) => {
+      return keywordsArray.some(keyword => query.includes(keyword));
+    };
+
+    // Synonym categories
+    const docKeywords = ['policy', 'document', 'rag', 'rule', 'handbook', 'guideline', 'manual', 'file', 'pdf', 'docs', 'procedure', 'regulation', 'contract', 'agreement', 'terms'];
+    const payrollKeywords = ['salary', 'payroll', 'payslip', 'pay', 'earn', 'money', 'cost', 'spend', 'financial', 'remuneration', 'compensation', 'income', 'wage', 'check', 'tax', 'deduction', 'slip', 'cash'];
+    const attendanceKeywords = ['attendance', 'clock', 'timecard', 'present', 'absent', 'hours', 'log', 'checkin', 'checkout', 'late', 'worktime', 'timesheet', 'history', 'timed'];
+    const leaveKeywords = ['leave', 'vacation', 'off', 'out of office', 'sick', 'break', 'absence', 'ooo', 'time off', 'time-off', 'pto', 'furlough'];
+    const taskKeywords = ['project', 'task', 'kanban', 'todo', 'assignee', 'doing', 'backlog', 'board', 'work item', 'milestone', 'progress', 'develop', 'coding', 'issue', 'workload'];
+    const assetKeywords = ['asset', 'laptop', 'hardware', 'device', 'computer', 'monitor', 'inventory', 'stock', 'equipment', 'item', 'macbook', 'pc', 'mouse', 'keyboard'];
+    const ticketKeywords = ['ticket', 'helpdesk', 'support', 'issue', 'bug', 'error', 'broken', 'help', 'request', 'it support', 'service desk', 'complaint', 'problem'];
+    const employeeKeywords = ['employ', 'user', 'member', 'staff', 'people', 'who is', 'find person', 'directory', 'contact', 'who works', 'names', 'colleague', 'team', 'worker', 'profiles'];
+    const departmentKeywords = ['department', 'organization', 'division', 'dept', 'office', 'branch', 'structure', 'tree', 'corporate'];
+    const shiftKeywords = ['shift', 'schedule', 'timetable', 'timing', 'hours', 'clock-in', 'rota'];
+    const holidayKeywords = ['holiday', 'festive', 'calendar', 'vacation day', 'off day', 'celebration'];
+    const greetings = ['hello', 'hi', 'hey', 'greetings', 'yo', 'sup', 'morning', 'afternoon'];
+    const capabilityKeywords = ['what can you do', 'help', 'features', 'capabilities', 'how to use', 'guide', 'instructions', 'help me'];
 
     // 2. Intent parsing & dynamic database search tools
-    if (userQuery.includes('policy') || userQuery.includes('document') || userQuery.includes('rag')) {
+    if (matchKeywords(userQuery, docKeywords)) {
       // Document Search (M-12) with server-side visibility restrictions
       const emp = await dbGet('SELECT department_id FROM employees WHERE user_id = ?', [req.user.id]);
       const userDept = emp ? emp.department_id : null;
@@ -80,14 +165,15 @@ ${docs.map(d => `| ${d.title} | ${d.category} | ${d.version} | ${d.visibility} |
       `.trim();
       isTable = true;
     } 
-    else if (userQuery.includes('salary') || userQuery.includes('payroll') || userQuery.includes('payslip')) {
+    else if (matchKeywords(userQuery, payrollKeywords)) {
       // Payroll Explainer (M-07) - RBAC checked
       let payrollData = [];
       if (req.user.role === 'Admin' || req.user.role === 'Super Admin' || req.user.role === 'HR') {
         payrollData = await dbAll(`
-          SELECT p.*, e.name as employee_name 
+          SELECT p.*, u.name as employee_name 
           FROM payrolls p
           JOIN employees e ON p.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
           LIMIT 10
         `);
       } else {
@@ -105,12 +191,13 @@ ${payrollData.map(p => `| ${p.employee_name || 'Personal'} | ${p.month} | $${p.b
       `.trim();
       isTable = true;
     } 
-    else if (userQuery.includes('attendance') || userQuery.includes('clock')) {
+    else if (matchKeywords(userQuery, attendanceKeywords)) {
       // Attendance (M-05) summary
       const attendance = await dbAll(`
-        SELECT a.date, a.status, e.name as employee_name 
+        SELECT a.date, a.status, u.name as employee_name 
         FROM attendance a
         JOIN employees e ON a.employee_id = e.id
+        JOIN users u ON e.user_id = u.id
         ORDER BY a.date DESC LIMIT 10
       `);
 
@@ -122,12 +209,13 @@ ${attendance.map(a => `| ${a.date} | ${a.employee_name} | ${a.status} |`).join('
       `.trim();
       isTable = true;
     } 
-    else if (userQuery.includes('leave') || userQuery.includes('vacation')) {
+    else if (matchKeywords(userQuery, leaveKeywords)) {
       // Leave Assistant (M-06)
       const leaves = await dbAll(`
-        SELECT lr.*, e.name as employee_name 
+        SELECT lr.*, u.name as employee_name 
         FROM leave_requests lr
         JOIN employees e ON lr.employee_id = e.id
+        JOIN users u ON e.user_id = u.id
         ORDER BY lr.created_at DESC LIMIT 10
       `);
 
@@ -139,12 +227,13 @@ ${leaves.map(l => `| ${l.employee_name} | ${l.leave_type} | ${l.start_date} to $
       `.trim();
       isTable = true;
     } 
-    else if (userQuery.includes('project') || userQuery.includes('task') || userQuery.includes('kanban')) {
+    else if (matchKeywords(userQuery, taskKeywords)) {
       // Projects (M-09)
       const tasksList = await dbAll(`
-        SELECT t.title, t.status, t.priority, e.name as assignee_name 
+        SELECT t.title, t.status, t.priority, u.name as assignee_name 
         FROM tasks t
         LEFT JOIN employees e ON t.assignee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
         LIMIT 10
       `);
 
@@ -156,12 +245,13 @@ ${tasksList.map(t => `| ${t.title} | ${t.assignee_name || 'Unassigned'} | ${t.st
       `.trim();
       isTable = true;
     } 
-    else if (userQuery.includes('asset') || userQuery.includes('laptop') || userQuery.includes('hardware')) {
+    else if (matchKeywords(userQuery, assetKeywords)) {
       // Assets (M-10)
       const assets = await dbAll(`
-        SELECT a.name, a.asset_tag, a.status, e.name as assignee_name 
+        SELECT a.name, a.asset_tag, a.status, u.name as assignee_name 
         FROM assets a
         LEFT JOIN employees e ON a.assigned_to = e.id
+        LEFT JOIN users u ON e.user_id = u.id
         LIMIT 10
       `);
 
@@ -173,7 +263,7 @@ ${assets.map(a => `| ${a.name} | ${a.asset_tag} | ${a.status} | ${a.assignee_nam
       `.trim();
       isTable = true;
     } 
-    else if (userQuery.includes('ticket') || userQuery.includes('helpdesk') || userQuery.includes('support')) {
+    else if (matchKeywords(userQuery, ticketKeywords)) {
       // Help Desk (M-11)
       const tickets = await dbAll(`
         SELECT t.subject, t.category, t.priority, t.status, u.name as raised_by_name 
@@ -190,27 +280,186 @@ ${tickets.map(t => `| ${t.subject} | ${t.category} | ${t.priority} | ${t.raised_
       `.trim();
       isTable = true;
     }
+    else if (matchKeywords(userQuery, employeeKeywords)) {
+      // Check if they are asking for a count/total of employees
+      const isCountQuery = userQuery.includes('how many') || userQuery.includes('count') || userQuery.includes('total') || userQuery.includes('number of');
+      
+      if (isCountQuery) {
+        const activeCount = await dbGet("SELECT COUNT(*) as count FROM employees WHERE status = 'Active'");
+        const totalCount = await dbGet("SELECT COUNT(*) as count FROM employees");
+        
+        contextData = `
+### 👤 Employee Count Summary
+Syncra Enterprise currently has **${activeCount.count}** active employees (**${totalCount.count}** total registered profiles).
+        `.trim();
+        isTable = false;
+      } else {
+        // Search for specific employee
+        const stopWords = new Set(['who', 'is', 'find', 'search', 'for', 'employee', 'employees', 'employ', 'staff', 'member', 'the', 'a', 'an', 'show', 'list', 'details', 'colleague', 'user', 'people']);
+        const queryWords = userQuery.split(/\s+/).filter(w => !stopWords.has(w) && w.length > 2);
+        
+        let employees = [];
+        if (queryWords.length > 0) {
+          const placeholders = queryWords.map(() => 'u.name LIKE ?').join(' OR ');
+          const params = queryWords.map(w => `%${w}%`);
+          employees = await dbAll(`
+            SELECT u.name, u.email, e.status, u.role, o.name as department_name 
+            FROM employees e
+            JOIN users u ON e.user_id = u.id
+            LEFT JOIN organizations o ON e.department_id = o.id
+            WHERE ${placeholders}
+            LIMIT 10
+          `, params);
+        } else {
+          employees = await dbAll(`
+            SELECT u.name, u.email, e.status, u.role, o.name as department_name 
+            FROM employees e
+            JOIN users u ON e.user_id = u.id
+            LEFT JOIN organizations o ON e.department_id = o.id
+            LIMIT 10
+          `);
+        }
+
+        contextData = `
+### 👤 Corporate Directory Search
+| Name | Email | Department | Role | Status |
+| :--- | :--- | :--- | :--- | :--- |
+${employees.map(e => `| ${e.name} | ${e.email} | ${e.department_name || 'N/A'} | ${e.role} | ${e.status} |`).join('\n')}
+        `.trim();
+        isTable = true;
+      }
+    }
+    else if (matchKeywords(userQuery, departmentKeywords)) {
+      const depts = await dbAll(`
+        SELECT name, code, status 
+        FROM organizations 
+        LIMIT 20
+      `);
+      contextData = `
+### 🏢 Corporate Departments Registry
+There are **${depts.length}** total departments/nodes configured in the system:
+
+| Department Name | Code / Identifier | Status |
+| :--- | :--- | :--- |
+${depts.map(d => `| ${d.name} | ${d.code || 'N/A'} | ${d.status} |`).join('\n')}
+      `.trim();
+      isTable = true;
+    }
+    else if (matchKeywords(userQuery, shiftKeywords)) {
+      const shifts = await dbAll(`
+        SELECT name, start_time, end_time, status 
+        FROM work_shifts 
+        LIMIT 10
+      `);
+      contextData = `
+### ⏰ Corporate Work Shifts
+Here is the work shift schedule configuration:
+
+| Shift Name | Start Time | End Time | Status |
+| :--- | :--- | :--- | :--- |
+${shifts.map(s => `| ${s.name} | ${s.start_time} | ${s.end_time} | ${s.status} |`).join('\n')}
+      `.trim();
+      isTable = true;
+    }
+    else if (matchKeywords(userQuery, holidayKeywords)) {
+      const holidays = await dbAll(`
+        SELECT name, date, description 
+        FROM holidays 
+        ORDER BY date ASC 
+        LIMIT 10
+      `);
+      contextData = `
+### 🏖️ Corporate Holiday Calendar
+Here are the official public and company holidays:
+
+| Holiday | Date | Description |
+| :--- | :--- | :--- |
+${holidays.map(h => `| ${h.name} | ${h.date} | ${h.description || 'Company Holiday'} |`).join('\n')}
+      `.trim();
+      isTable = true;
+    }
 
     // 3. Synthesize final assistant response
     let assistantReply = '';
-    if (contextData) {
+    if (navigationTab) {
+      const tabNames = {
+        attendance: '⏱️ Attendance Tracking',
+        payroll: '💵 Payroll Explainer',
+        recruitment: '🤝 Recruitment Pipeline',
+        projects: '📋 Project Kanban Board',
+        assets: '💻 Hardware Asset Registry',
+        auditLogs: '🛡️ System Audit Logs',
+        employees: '👤 Employee Directory',
+        organizations: '🏢 Enterprise Department Tree',
+        leave: '📅 Leave Planner',
+        overview: '📊 Command Center Overview',
+        insights: '📈 Workforce Insights',
+        performance: '🎯 Performance Targets',
+        tickets: '🎫 IT Help Desk'
+      };
+      
       assistantReply = `
-${contextualPrefix}### 🤖 AI Operations Assistant (Claude Proxy)
+### 🤖 Rachel
+
+I am opening the **${tabNames[navigationTab]}** section for you right now!
+
+${contextData ? `Here is the data summary for this section:\n\n${contextData}` : ''}
+      `.trim();
+    } else if (contextData) {
+      assistantReply = `
+### 🤖 Rachel
 
 Based on a real-time scan of the database, here is the requested data table:
 
 ${contextData}
       `.trim();
+    } else if (matchKeywords(userQuery, greetings) || userQuery.includes('morning') || userQuery.includes('afternoon') || userQuery.includes('evening') || userQuery.includes('night')) {
+      let greetingText = '';
+      if (userQuery.includes('morning')) {
+        greetingText = `Good morning, **${req.user.name}**! ☀️ How can I assist you with Syncra Enterprise operations this morning? You can ask me to search policy manuals, check shift timetables, or audit log check-ins!`;
+      } else if (userQuery.includes('afternoon')) {
+        greetingText = `Good afternoon, **${req.user.name}**! 🌤️ Hope your day is going well. What SQLite database records or documents can I fetch for you this afternoon?`;
+      } else if (userQuery.includes('evening')) {
+        greetingText = `Good evening, **${req.user.name}**! 🌇 As the day winds down, let me know if you need to review any project tasks, leave schedules, or active IT tickets tonight.`;
+      } else if (userQuery.includes('night')) {
+        greetingText = `Good night, **${req.user.name}**! 🌙 Hope you had a productive day. Let me know if there's any final detail you need to check before logging off.`;
+      } else {
+        const greetingOptions = [
+          `Hello **${req.user.name}**! 😊 How can I help you manage Syncra Enterprise today? You can ask me about payroll logs, employee directory details, shift schedules, hardware assets, or company policy documents.`,
+          `Hi **${req.user.name}**! 👋 Rachel active. What information from our SQLite database can I retrieve for you?`,
+          `Greetings, **${req.user.name}**! 🤖 I'm connected to the workspace system. Ask me anything about tasks, team leaves, or IT support tickets!`
+        ];
+        greetingText = greetingOptions[Math.floor(Math.random() * greetingOptions.length)];
+      }
+      assistantReply = `### 🤖 Rachel\n\n` + greetingText;
+    } else if (matchKeywords(userQuery, capabilityKeywords)) {
+      assistantReply = `
+### 🤖 Rachel
+
+I am your intelligent assistant. I can query our SQLite database dynamically to help you inspect:
+1. 📁 **Policy Documents (RAG)**: Search and view employee guidelines.
+2. 💵 **Payroll Explainer**: View salaries, deductions, and payslip data (RBAC enforced).
+3. ⏱️ **Attendance Logs**: Track employee check-in history.
+4. 📅 **Leave Requests**: Check who is out of office.
+5. 📋 **Project Tasks**: Monitor Kanban progress.
+6. 💻 **Hardware Inventory**: Check devices and laptop allocations.
+7. 🎫 **IT Help Desk**: Review support ticket queues.
+8. 👤 **Employee Directory**: Search colleagues by name (e.g., query *"Who is Priya?"*).
+      `.trim();
     } else {
       assistantReply = `
-${contextualPrefix}### 🤖 AI Operations Assistant (Claude Proxy)
-Hello **${req.user.name}**! I am your AI Operations Assistant. I can scan your workspace SQLite database tables and perform visibility-checked RAG policies search.
+### 🤖 Rachel
 
-Try querying:
-* *"Search for employee policy documents"*
-* *"Explain our payroll and salaries cost summary"*
-* *"Who is currently on leave this week?"*
-* *"Show our hardware asset inventory status"*
+I analyzed your query: *"**${query}**"*. 
+
+While I couldn't map that directly to a specific database command, I can assist you with:
+* 👤 **Finding colleagues** (e.g., *"Search for Rahul"* or *"Who is Priya?"*)
+* 💵 **Payroll details** (e.g., *"Show basic salary logs"* or *"payroll costs"*)
+* 📅 **Leave tracker** (e.g., *"Is anyone on vacation?"*)
+* ⏱️ **Work time logs** (e.g., *"Attendance check-ins"* or *"clock status"*)
+* 📁 **Company rules** (e.g., *"Search HR policy manual"*)
+
+Let me know what you would like to look up!
       `.trim();
     }
 
@@ -219,7 +468,7 @@ Try querying:
       finalConvId, assistantReply, isTable ? JSON.stringify({ isTable: true }) : null
     ]);
 
-    res.status(200).json({ response: assistantReply, conversationId: finalConvId });
+    res.status(200).json({ response: assistantReply, conversationId: finalConvId, navigationTab });
   } catch (err) {
     res.status(500).json({ error: 'AI Operations Chatbot failed: ' + err.message });
   }

@@ -3,7 +3,7 @@ import { Bot, Send, MessageSquare, X, Mic, Sparkles, Check, Play, AlertCircle } 
 
 const API_BASE = 'http://localhost:5000/api/v1';
 
-export default function AIAssistantWidget({ activeTab }) {
+export default function AIAssistantWidget({ activeTab, setActiveTab }) {
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
@@ -13,6 +13,10 @@ export default function AIAssistantWidget({ activeTab }) {
   
   // Pending AI agent actions count for the Orb badge
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Voice recognition states
+  const [isListening, setIsListening] = useState(false);
+  const [recognitionInstance, setRecognitionInstance] = useState(null);
 
   const messagesEndRef = useRef(null);
   const token = localStorage.getItem('wfm_token');
@@ -78,13 +82,32 @@ export default function AIAssistantWidget({ activeTab }) {
       if (res.ok) {
         const data = await res.json();
         setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+        if (data.navigationTab && typeof setActiveTab === 'function') {
+          setActiveTab(data.navigationTab);
+        }
         if (!activeConvId) {
           setActiveConvId(data.conversationId);
           fetchConversations();
         }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setMessages(prev => [
+          ...prev, 
+          { 
+            role: 'assistant', 
+            content: `### ⚠️ Rachel (Error)\n\nI encountered a server issue (${res.status}): ${errData.error || 'Request unauthorized or blocked.'}` 
+          }
+        ]);
       }
     } catch (err) {
       console.error(err);
+      setMessages(prev => [
+        ...prev, 
+        { 
+          role: 'assistant', 
+          content: `### ⚠️ Rachel (Connection Offline)\n\nI couldn't establish a connection to the server. Please verify the backend is active and try again.` 
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -98,19 +121,65 @@ export default function AIAssistantWidget({ activeTab }) {
     handleSendMessage(text);
   };
 
+  const handleNewChat = () => {
+    setActiveConvId(null);
+    setMessages([]);
+  };
+
   const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser.');
+    if (isListening) {
+      if (recognitionInstance) {
+        recognitionInstance.stop();
+      }
+      setIsListening(false);
       return;
     }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.start();
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInputMsg(transcript);
-    };
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please try Chrome or Safari.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+        if (event.error === 'not-allowed') {
+          alert('Microphone access is blocked. Please click the camera/microphone icon in the browser URL bar and choose "Allow" to enable voice input.');
+        } else if (event.error === 'no-speech') {
+          // No speech detected is common and can fail silently without annoying alert dialogs
+        } else {
+          alert(`Speech recognition error: ${event.error}`);
+        }
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript && transcript.trim()) {
+          handleSendMessage(transcript.trim());
+        }
+      };
+
+      setRecognitionInstance(recognition);
+      recognition.start();
+    } catch (err) {
+      console.error('Speech recognition start failed', err);
+      setIsListening(false);
+    }
   };
 
   useEffect(() => {
@@ -127,6 +196,79 @@ export default function AIAssistantWidget({ activeTab }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const formatMessageText = (text) => {
+    if (!text) return '';
+    let formatted = text;
+    // Strip out 📊 emoji
+    formatted = formatted.replace(/📊/g, '');
+    
+    // Parse headers (e.g. ### Title)
+    formatted = formatted.replace(/^### (.*$)/gim, '<h4 style="margin: 4px 0 8px 0; font-size: 13.5px; font-weight: 700; color: #6366F1;">$1</h4>');
+    
+    // Parse bold text (e.g. **bold**)
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Parse italic text (e.g. *italic*)
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    // Parse bullets (e.g. - list item)
+    formatted = formatted.replace(/^- (.*$)/gim, '• $1');
+    
+    // Parse markdown tables
+    if (formatted.includes('|')) {
+      const paragraphs = formatted.split('\n');
+      const processedParagraphs = [];
+      let inTable = false;
+      let tableHtml = '';
+      
+      for (let i = 0; i < paragraphs.length; i++) {
+        const line = paragraphs[i].trim();
+        if (line.startsWith('|') && line.endsWith('|')) {
+          if (!inTable) {
+            inTable = true;
+            tableHtml = '<table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11.5px; border: 1px solid var(--sidebar-border);">';
+          }
+          
+          if (line.includes('---') || line.includes(':---')) {
+            continue;
+          }
+          
+          const cells = line.split('|').slice(1, -1).map(c => c.trim());
+          const isHeader = i === 0 || (i > 0 && paragraphs[i-1].includes('---'));
+          const cellTag = isHeader ? 'th' : 'td';
+          
+          tableHtml += `<tr style="border-bottom: 1px solid var(--sidebar-border); ${isHeader ? 'background: var(--card-item-bg); font-weight: bold; color: var(--text-dark);' : 'color: var(--text-dark);'}">`;
+          cells.forEach(cell => {
+            let cellContent = cell;
+            const linkMatch = cell.match(/\[(.*?)\]\((.*?)\)/);
+            if (linkMatch) {
+              cellContent = `<a href="${linkMatch[2]}" target="_blank" style="color: #6366F1; text-decoration: underline;">${linkMatch[1]}</a>`;
+            }
+            cellContent = cellContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            tableHtml += `<${cellTag} style="padding: 6px; text-align: left;">${cellContent}</${cellTag}>`;
+          });
+          tableHtml += '</tr>';
+        } else {
+          if (inTable) {
+            inTable = false;
+            tableHtml += '</table>';
+            processedParagraphs.push(tableHtml);
+          }
+          processedParagraphs.push(line);
+        }
+      }
+      if (inTable) {
+        tableHtml += '</table>';
+        processedParagraphs.push(tableHtml);
+      }
+      formatted = processedParagraphs.join('<br/>');
+    } else {
+      formatted = formatted.replace(/\n/g, '<br/>');
+    }
+    
+    return formatted;
+  };
 
   // Contextual tips based on current page
   const getContextualContent = () => {
@@ -229,19 +371,22 @@ export default function AIAssistantWidget({ activeTab }) {
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.1)'
+            border: '1px solid var(--sidebar-border)',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(16px)',
+            boxShadow: 'var(--shadow-lg)'
           }}
         >
           {/* Header */}
-          <div style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', padding: '20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)', padding: '20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Bot size={22} color="#6366F1" />
+              <Bot size={22} color="white" />
               <div>
-                <span style={{ fontWeight: '700', fontSize: '15px', display: 'block' }}>Command Assistant</span>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>Context: {activeTab}</span>
+                <span style={{ fontWeight: '700', fontSize: '15px', display: 'block', color: 'white' }}>Rachel</span>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)' }}>Context: {activeTab}</span>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+            <button onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer' }}>
               <X size={20} />
             </button>
           </div>
@@ -249,8 +394,8 @@ export default function AIAssistantWidget({ activeTab }) {
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
             
             {/* Left Session strip */}
-            <div style={{ width: '100px', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', background: 'rgba(15, 23, 42, 0.4)' }}>
-              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', padding: '12px 8px 6px 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>History</div>
+            <div style={{ width: '100px', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', background: 'var(--card-item-bg)' }}>
+              <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-secondary)', padding: '12px 8px 6px 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>History</div>
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px' }}>
                 {conversations.map(c => (
                   <button
@@ -262,8 +407,8 @@ export default function AIAssistantWidget({ activeTab }) {
                       textAlign: 'left',
                       border: 'none',
                       borderRadius: '6px',
-                      background: activeConvId === c.id ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-                      color: activeConvId === c.id ? '#8f94fb' : '#94a3b8',
+                      background: activeConvId === c.id ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                      color: activeConvId === c.id ? '#6366F1' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -274,10 +419,36 @@ export default function AIAssistantWidget({ activeTab }) {
                   </button>
                 ))}
               </div>
+              <div style={{ padding: '8px', borderTop: '1px solid var(--sidebar-border)' }}>
+                <button
+                  onClick={handleNewChat}
+                  style={{
+                    width: '100%',
+                    padding: '8px 4px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    border: 'none',
+                    borderRadius: '99px',
+                    background: 'rgba(99, 102, 241, 0.12)',
+                    color: '#6366F1',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.25)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.12)'; }}
+                >
+                  ➕ New Chat
+                </button>
+              </div>
             </div>
 
             {/* Chat screen */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'rgba(30, 41, 59, 0.4)' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--card-bg)' }}>
               
               {/* Message scroll container */}
               <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -287,12 +458,12 @@ export default function AIAssistantWidget({ activeTab }) {
                     
                     {/* Context State prompt cards */}
                     {contextInfo ? (
-                      <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.15)', borderRadius: '12px', padding: '16px', color: '#f8fafc' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 'bold', color: '#8f94fb', marginBottom: '8px' }}>
+                      <div style={{ background: 'var(--sidebar-bg)', border: '1px solid rgba(99, 102, 241, 0.15)', borderRadius: '12px', padding: '16px', color: 'var(--text-dark)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 'bold', color: '#6366F1', marginBottom: '8px' }}>
                           <Sparkles size={16} />
                           {contextInfo.title}
                         </div>
-                        <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: '0 0 12px 0' }}>{contextInfo.intro}</p>
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>{contextInfo.intro}</p>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {contextInfo.actions.map((act, i) => (
@@ -303,16 +474,16 @@ export default function AIAssistantWidget({ activeTab }) {
                                 width: '100%',
                                 textAlign: 'left',
                                 padding: '8px 12px',
-                                background: 'rgba(255,255,255,0.04)',
-                                border: '1px solid rgba(255,255,255,0.06)',
+                                background: 'var(--sidebar-bg)',
+                                border: '1px solid var(--sidebar-border)',
                                 borderRadius: '8px',
-                                color: '#f8fafc',
+                                color: 'var(--text-dark)',
                                 fontSize: '11.5px',
                                 cursor: 'pointer',
                                 transition: 'background 0.2s'
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--card-item-bg)'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--sidebar-bg)'}
                             >
                               💡 {act.text}
                             </button>
@@ -320,8 +491,8 @@ export default function AIAssistantWidget({ activeTab }) {
                         </div>
                       </div>
                     ) : (
-                      <div style={{ color: '#94a3b8', fontSize: '12.5px', textAlign: 'center', marginTop: '40px' }}>
-                        <Bot size={36} color="#475569" style={{ margin: '0 auto 12px auto' }} />
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '12.5px', textAlign: 'center', marginTop: '40px' }}>
+                        <Bot size={36} color="var(--text-secondary)" style={{ margin: '0 auto 12px auto' }} />
                         I'm here if you need me. Click history or ask a custom question below.
                       </div>
                     )}
@@ -333,23 +504,22 @@ export default function AIAssistantWidget({ activeTab }) {
                     key={idx}
                     style={{
                       alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                      background: m.role === 'user' ? '#6366F1' : 'rgba(255,255,255,0.06)',
-                      color: m.role === 'user' ? 'white' : '#f8fafc',
+                      background: m.role === 'user' ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' : 'var(--sidebar-bg)',
+                      color: m.role === 'user' ? 'white' : 'var(--text-dark)',
                       padding: '10px 14px',
                       borderRadius: m.role === 'user' ? '16px 16px 0 16px' : '16px 16px 16px 0',
                       maxWidth: '85%',
                       fontSize: '12.5px',
                       lineHeight: '1.45',
-                      border: m.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                      whiteSpace: 'pre-wrap'
+                      border: m.role === 'user' ? 'none' : '1px solid rgba(99, 102, 241, 0.15)',
+                      boxShadow: m.role === 'user' ? '0 4px 10px rgba(99,102,241,0.2)' : '0 2px 5px rgba(0,0,0,0.02)'
                     }}
-                  >
-                    {m.content}
-                  </div>
+                    dangerouslySetInnerHTML={{ __html: formatMessageText(m.content) }}
+                  />
                 ))}
 
                 {loading && (
-                  <div style={{ alignSelf: 'flex-start', background: 'rgba(255,255,255,0.06)', padding: '10px 14px', borderRadius: '16px 16px 16px 0', fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ alignSelf: 'flex-start', background: 'var(--sidebar-bg)', border: '1px solid rgba(99, 102, 241, 0.15)', padding: '10px 14px', borderRadius: '16px 16px 16px 0', fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="animate-pulse">🤖 thinking...</span>
                   </div>
                 )}
@@ -357,26 +527,36 @@ export default function AIAssistantWidget({ activeTab }) {
               </div>
 
               {/* Input Form */}
-              <form onSubmit={handleFormSubmit} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <form onSubmit={handleFormSubmit} style={{ borderTop: '1px solid var(--sidebar-border)', padding: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
                   type="button"
                   onClick={handleVoiceInput}
-                  style={{ padding: '8px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.06)', color: '#94a3b8', cursor: 'pointer' }}
+                  style={{ 
+                    padding: '8px', 
+                    borderRadius: '50%', 
+                    border: 'none', 
+                    background: isListening ? '#EF4444' : 'var(--card-item-bg)', 
+                    color: isListening ? 'white' : 'var(--text-secondary)', 
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: isListening ? '0 0 10px rgba(239, 68, 68, 0.4)' : 'none'
+                  }}
+                  title={isListening ? "Listening... click to stop" : "Use Voice Input"}
                 >
-                  <Mic size={16} />
+                  <Mic size={16} style={{ transform: isListening ? 'scale(1.1)' : 'scale(1)' }} />
                 </button>
                 <input
                   type="text"
-                  placeholder="Ask Command Assistant..."
+                  placeholder={isListening ? "Listening... Speak now!" : "Ask Rachel..."}
                   value={inputMsg}
                   onChange={(e) => setInputMsg(e.target.value)}
                   style={{
                     flex: 1,
                     padding: '8px 14px',
                     borderRadius: '99px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(15, 23, 42, 0.4)',
-                    color: '#f8fafc',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    background: 'var(--sidebar-bg)',
+                    color: 'var(--text-dark)',
                     fontSize: '12.5px',
                     outline: 'none'
                   }}
