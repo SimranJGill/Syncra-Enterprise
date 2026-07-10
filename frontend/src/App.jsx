@@ -5,11 +5,42 @@ import Dashboard from './components/Dashboard';
 import ResetPasswordForm from './components/ResetPasswordForm';
 import LandingPage from './components/LandingPage';
 import DepartmentShowcase from './components/DepartmentShowcase';
+import PageTransitionOverlay from './components/PageTransitionOverlay';
 
 function App() {
   const [view, setView] = useState('landing'); // 'landing', 'personaSelect', 'login', 'register', 'dashboard', 'resetPassword'
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [transitionState, setTransitionState] = useState('idle'); // 'idle', 'curtain-opening', 'logo-hold', 'revealing'
+
+  const handleEnter = (target) => {
+    if (target === 'personaSelect') {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        setView('personaSelect');
+        return;
+      }
+      setTransitionState('curtain-opening');
+    } else {
+      setView(target);
+    }
+  };
+
+  useEffect(() => {
+    if (transitionState === 'logo-hold') {
+      const timer = setTimeout(() => {
+        setTransitionState('revealing');
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+    if (transitionState === 'revealing') {
+      const timer = setTimeout(() => {
+        setView('personaSelect');
+        setTransitionState('idle');
+      }, 450);
+      return () => clearTimeout(timer);
+    }
+  }, [transitionState]);
 
   // Validate session on mount and parse password reset token links
   useEffect(() => {
@@ -107,7 +138,7 @@ function App() {
   }
 
   // Adjust container styling based on active view (landing & personaSelect are full screen dark mode)
-  const isFullScreenView = view === 'landing' || view === 'personaSelect' || view === 'dashboard';
+  const isFullScreenView = view === 'landing' || view === 'personaSelect' || view === 'dashboard' || transitionState !== 'idle';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh' }}>
@@ -115,19 +146,32 @@ function App() {
       <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         {isFullScreenView ? (
           <>
-            {view === 'landing' && (
-              <LandingPage onEnter={(target) => setView(target)} />
+            {view === 'landing' && transitionState === 'idle' && (
+              <LandingPage onEnter={handleEnter} />
             )}
-            {view === 'personaSelect' && (
+            {(view === 'personaSelect' || transitionState !== 'idle') && (
               <DepartmentShowcase 
-                onBack={() => setView('landing')} 
-                onManualLogin={() => setView('login')} 
+                onBack={() => {
+                  setTransitionState('idle');
+                  setView('landing');
+                }} 
+                onManualLogin={() => {
+                  setTransitionState('idle');
+                  setView('login');
+                }} 
+                transitionStage={transitionState}
               />
             )}
             {view === 'dashboard' && user && (
               <Dashboard 
                 user={user} 
                 onLogout={handleLogout} 
+              />
+            )}
+            {transitionState === 'curtain-opening' && (
+              <PageTransitionOverlay 
+                isDarkMode={document.documentElement.classList.contains('dark')} 
+                onComplete={() => setTransitionState('logo-hold')} 
               />
             )}
           </>
