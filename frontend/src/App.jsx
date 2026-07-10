@@ -4,7 +4,7 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import ResetPasswordForm from './components/ResetPasswordForm';
 import LandingPage from './components/LandingPage';
-import PersonaSelector from './components/PersonaSelector';
+import DepartmentShowcase from './components/DepartmentShowcase';
 
 function App() {
   const [view, setView] = useState('landing'); // 'landing', 'personaSelect', 'login', 'register', 'dashboard', 'resetPassword'
@@ -119,8 +119,7 @@ function App() {
               <LandingPage onEnter={(target) => setView(target)} />
             )}
             {view === 'personaSelect' && (
-              <PersonaSelector 
-                onSelect={handleLoginSuccess} 
+              <DepartmentShowcase 
                 onBack={() => setView('landing')} 
                 onManualLogin={() => setView('login')} 
               />

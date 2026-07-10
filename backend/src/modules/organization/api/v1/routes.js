@@ -20,6 +20,60 @@ async function wouldCreateCycle(deptId, newParentId) {
   return false;
 }
 
+// 0. GET /api/v1/organizations/public-showcase - Retrieve the first 5 departments with metadata for public showcase
+router.get('/public-showcase', async (req, res) => {
+  try {
+    const orgs = await dbAll(`
+      SELECT o.id, o.name, o.code, o.status, u.name as manager_name,
+      (SELECT COUNT(*) FROM employees e WHERE e.department_id = o.id AND e.status = 'Active') as employee_count
+      FROM organizations o
+      LEFT JOIN users u ON o.manager_id = u.id
+      WHERE o.status = 'Active'
+      ORDER BY employee_count DESC, o.id ASC
+      LIMIT 5
+    `);
+
+    const departments = [];
+    for (const org of orgs) {
+      const designations = await dbAll('SELECT title FROM designations WHERE department_id = ?', [org.id]);
+      
+      const openRolesCount = await dbGet(`
+        SELECT COUNT(*) as count FROM candidates c 
+        JOIN designations d ON c.applied_for_designation_id = d.id
+        WHERE d.department_id = ? AND c.status != 'Hired' AND c.status != 'Rejected'
+      `, [org.id]);
+
+      let shortDescription = 'Corporate operational and planning division.';
+      if (org.name.toLowerCase().includes('eng') || org.name.toLowerCase().includes('tech') || org.name.toLowerCase().includes('code')) {
+        shortDescription = 'Core software engineering, platform development, and technical infrastructure operations.';
+      } else if (org.name.toLowerCase().includes('market') || org.name.toLowerCase().includes('mkt')) {
+        shortDescription = 'Brand strategy, advertising campaigns, and public relations growth operations.';
+      } else if (org.name.toLowerCase().includes('finan') || org.name.toLowerCase().includes('pay') || org.name.toLowerCase().includes('audit')) {
+        shortDescription = 'Financial planning, asset management, and payroll compliance administration.';
+      } else if (org.name.toLowerCase().includes('hr') || org.name.toLowerCase().includes('peop') || org.name.toLowerCase().includes('onboard')) {
+        shortDescription = 'Human resources, talent acquisition, recruitment pipelines, and onboarding compliance.';
+      } else if (org.name.toLowerCase().includes('corp') || org.name.toLowerCase().includes('main') || org.name.toLowerCase().includes('admin')) {
+        shortDescription = 'Executive leadership, organizational strategy, and administrative alignment.';
+      }
+
+      departments.push({
+        id: org.id,
+        name: org.name,
+        code: org.code,
+        managerName: org.managerName || org.manager_name || 'N/A',
+        headcount: org.employee_count || 0,
+        openRoles: openRolesCount ? openRolesCount.count : 0,
+        shortDescription,
+        designations: designations.map(d => d.title)
+      });
+    }
+
+    res.status(200).json({ departments });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve showcase: ' + err.message });
+  }
+});
+
 // 1. GET /api/v1/organizations - Retrieve flat organization nodes list
 router.get('/', authenticateToken, requirePermission('org:read'), async (req, res) => {
   try {
