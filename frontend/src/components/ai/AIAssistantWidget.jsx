@@ -63,8 +63,52 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
     }
   };
 
-  const handleSendMessage = async (userText) => {
+  const speak = (text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+
+      let cleanText = text
+        .replace(/###/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/\|/g, ' ')
+        .replace(/-{3,}/g, '')
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+        .trim();
+
+      if (text.includes('|')) {
+        const lines = text.split('\n');
+        const nonTableLines = lines.filter(l => !l.trim().startsWith('|'));
+        cleanText = nonTableLines.join('\n').replace(/###/g, '').replace(/\*\*/g, '').trim();
+        cleanText += ". I have displayed the detailed data table on your screen.";
+      }
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(v => 
+        v.lang.startsWith('en') && 
+        (v.name.toLowerCase().includes('female') || 
+         v.name.toLowerCase().includes('google us english') ||
+         v.name.toLowerCase().includes('samantha') ||
+         v.name.toLowerCase().includes('zira') ||
+         v.name.toLowerCase().includes('hazel'))
+      ) || voices.find(v => v.lang.startsWith('en'));
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const handleSendMessage = async (userText, isVoice = false) => {
     if (!userText.trim()) return;
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
 
     setLoading(true);
     setMessages(prev => [...prev, { role: 'user', content: userText }]);
@@ -82,6 +126,11 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
       if (res.ok) {
         const data = await res.json();
         setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+        
+        if (isVoice) {
+          speak(data.response);
+        }
+
         if (data.navigationTab && typeof setActiveTab === 'function') {
           setActiveTab(data.navigationTab);
         }
@@ -118,15 +167,22 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
     if (!inputMsg.trim()) return;
     const text = inputMsg;
     setInputMsg('');
-    handleSendMessage(text);
+    handleSendMessage(text, false);
   };
 
   const handleNewChat = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     setActiveConvId(null);
     setMessages([]);
   };
 
   const handleVoiceInput = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
     if (isListening) {
       if (recognitionInstance) {
         recognitionInstance.stop();
@@ -161,7 +217,6 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
         if (event.error === 'not-allowed') {
           alert('Microphone access is blocked. Please click the camera/microphone icon in the browser URL bar and choose "Allow" to enable voice input.');
         } else if (event.error === 'no-speech') {
-          // No speech detected is common and can fail silently without annoying alert dialogs
         } else {
           alert(`Speech recognition error: ${event.error}`);
         }
@@ -170,7 +225,7 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         if (transcript && transcript.trim()) {
-          handleSendMessage(transcript.trim());
+          handleSendMessage(transcript.trim(), true);
         }
       };
 
@@ -365,7 +420,7 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
         <div 
           className="glass-card" 
           style={{
-            width: '400px',
+            width: '680px',
             height: '650px',
             borderRadius: '24px',
             display: 'flex',
@@ -394,7 +449,7 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
             
             {/* Left Session strip */}
-            <div style={{ width: '100px', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', background: 'var(--card-item-bg)' }}>
+            <div style={{ width: '130px', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', background: 'var(--card-item-bg)' }}>
               <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-secondary)', padding: '12px 8px 6px 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>History</div>
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px' }}>
                 {conversations.map(c => (
@@ -508,7 +563,10 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
                       color: m.role === 'user' ? 'white' : 'var(--text-dark)',
                       padding: '10px 14px',
                       borderRadius: m.role === 'user' ? '16px 16px 0 16px' : '16px 16px 16px 0',
-                      maxWidth: '85%',
+                      maxWidth: m.content.includes('|') ? '100%' : '85%',
+                      width: m.content.includes('|') ? '100%' : 'auto',
+                      overflowX: m.content.includes('|') ? 'auto' : 'visible',
+                      overflowY: 'hidden',
                       fontSize: '12.5px',
                       lineHeight: '1.45',
                       border: m.role === 'user' ? 'none' : '1px solid rgba(99, 102, 241, 0.15)',
@@ -545,22 +603,80 @@ export default function AIAssistantWidget({ activeTab, setActiveTab }) {
                 >
                   <Mic size={16} style={{ transform: isListening ? 'scale(1.1)' : 'scale(1)' }} />
                 </button>
-                <input
-                  type="text"
-                  placeholder={isListening ? "Listening... Speak now!" : "Ask Rachel..."}
-                  value={inputMsg}
-                  onChange={(e) => setInputMsg(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '8px 14px',
-                    borderRadius: '99px',
-                    border: '1px solid rgba(99, 102, 241, 0.2)',
-                    background: 'var(--sidebar-bg)',
-                    color: 'var(--text-dark)',
-                    fontSize: '12.5px',
-                    outline: 'none'
-                  }}
-                />
+                <style>{`
+                  @keyframes wave-bar {
+                    0% { transform: scaleY(0.25); }
+                    100% { transform: scaleY(1.3); }
+                  }
+                  @keyframes pulse-dot {
+                    0% { opacity: 0.4; transform: scale(0.9); }
+                    50% { opacity: 1; transform: scale(1.15); }
+                    100% { opacity: 0.4; transform: scale(0.9); }
+                  }
+                `}</style>
+                {isListening ? (
+                  <div
+                    style={{
+                      flex: 1,
+                      height: '34px',
+                      borderRadius: '99px',
+                      border: '1px solid #EF4444',
+                      background: 'rgba(239, 68, 68, 0.05)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0 14px',
+                      gap: '10px',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#EF4444',
+                      animation: 'pulse-dot 1.2s infinite ease-in-out'
+                    }} />
+                    <span style={{ fontSize: '12px', color: '#EF4444', fontWeight: '600', flex: 1 }}>
+                      Listening... Speak now!
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '14px' }}>
+                      {[1, 2, 3, 4, 5].map((bar) => {
+                        const delays = ['0s', '0.2s', '0.4s', '0.1s', '0.3s'];
+                        return (
+                          <div
+                            key={bar}
+                            style={{
+                              width: '3px',
+                              height: '100%',
+                              background: '#EF4444',
+                              borderRadius: '2px',
+                              transformOrigin: 'bottom',
+                              animation: 'wave-bar 0.7s infinite ease-in-out alternate',
+                              animationDelay: delays[bar - 1]
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Ask Rachel..."
+                    value={inputMsg}
+                    onChange={(e) => setInputMsg(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 14px',
+                      borderRadius: '99px',
+                      border: '1px solid rgba(99, 102, 241, 0.2)',
+                      background: 'var(--sidebar-bg)',
+                      color: 'var(--text-dark)',
+                      fontSize: '12.5px',
+                      outline: 'none'
+                    }}
+                  />
+                )}
                 <button
                   type="submit"
                   style={{

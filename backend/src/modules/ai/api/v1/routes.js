@@ -120,6 +120,390 @@ router.post('/query', authenticateToken, async (req, res) => {
     // Save User message
     await dbRun('INSERT INTO ai_messages (conversation_id, role, content) VALUES (?, "user", ?)', [finalConvId, query]);
 
+    // --- CONVERSATIONAL LEAVE STATE MACHINE ---
+    const messages = await dbAll('SELECT * FROM ai_messages WHERE conversation_id = ? ORDER BY created_at ASC', [finalConvId]);
+
+    let collected = {
+      leaveType: null,
+      startDate: null,
+      endDate: null,
+      reason: null,
+      confirm: null,
+      inFlow: false
+    };
+
+    const parseLeaveType = (text) => {
+      const t = text.toLowerCase();
+      if (t.includes('casual')) return 'Casual';
+      if (t.includes('sick') || t.includes('medical') || t.includes('fever') || t.includes('doctor')) return 'Sick';
+      if (t.includes('earned') || t.includes('annual') || t.includes('vacation')) return 'Earned';
+      return null;
+    };
+
+    const parseDate = (text) => {
+      const t = text.toLowerCase().trim();
+      const today = new Date();
+      
+      // Basic shortcuts
+      if (t === 'today') {
+        return today.toISOString().split('T')[0];
+      }
+      if (t === 'tomorrow') {
+        const tom = new Date(today);
+        tom.setDate(today.getDate() + 1);
+        return tom.toISOString().split('T')[0];
+      }
+      if (t === 'day after tomorrow') {
+        const dat = new Date(today);
+        dat.setDate(today.getDate() + 2);
+        return dat.toISOString().split('T')[0];
+      }
+
+      // Weekday mapping
+      const weekdays = {
+        sunday: 0, sun: 0,
+        monday: 1, mon: 1,
+        tuesday: 2, tue: 2,
+        wednesday: 3, wed: 3,
+        thursday: 4, thu: 4,
+        friday: 5, fri: 5,
+        saturday: 6, sat: 6
+      };
+
+      // Check if weekday is mentioned
+      let targetDay = null;
+      for (const [name, val] of Object.entries(weekdays)) {
+        if (new RegExp('\\b' + name + '\\b').test(t)) {
+          targetDay = val;
+          break;
+        }
+      }
+
+      const weekMatch = t.match(/(\d+)\s*weeks?\s+from\s+(?:today|now)/);
+
+      if (targetDay !== null) {
+        let diff = targetDay - today.getDay();
+        if (diff <= 0) diff += 7;
+        const baseDate = new Date(today);
+        baseDate.setDate(today.getDate() + diff);
+
+        if (weekMatch) {
+          const weeks = parseInt(weekMatch[1]);
+          const finalDate = new Date(baseDate);
+          finalDate.setDate(baseDate.getDate() + (weeks - 1) * 7);
+          return finalDate.toISOString().split('T')[0];
+        } else {
+          if (t.includes('next') && !t.includes('this')) {
+            const finalDate = new Date(baseDate);
+            finalDate.setDate(baseDate.getDate() + 7);
+            return finalDate.toISOString().split('T')[0];
+          }
+          return baseDate.toISOString().split('T')[0];
+        }
+      }
+
+      if (weekMatch) {
+        const weeks = parseInt(weekMatch[1]);
+        const finalDate = new Date(today);
+        finalDate.setDate(today.getDate() + weeks * 7);
+        return finalDate.toISOString().split('T')[0];
+      }
+
+      const dayMatch = t.match(/in\s+(\d+)\s+days?/);
+      if (dayMatch) {
+        const days = parseInt(dayMatch[1]);
+        const finalDate = new Date(today);
+        finalDate.setDate(today.getDate() + days);
+        return finalDate.toISOString().split('T')[0];
+      }
+
+      const match = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (match) {
+        return t;
+      }
+      return null;
+    };
+
+    const parseYesNo = (text) => {
+      const t = text.toLowerCase().trim();
+      if (t.includes('yes') || t.includes('yup') || t.includes('sure') || t.includes('submit') || t.includes('ok') || t === 'y') return true;
+      if (t.includes('no') || t.includes('nope') || t.includes('cancel') || t === 'n') return false;
+      return null;
+    };
+
+    const extractParams = (text, coll) => {
+      const type = parseLeaveType(text);
+      if (type) coll.leaveType = type;
+      
+      const dateRegex = /\b(\d{4}-\d{2}-\d{2})\b/g;
+      let match;
+      const dates = [];
+      while ((match = dateRegex.exec(text)) !== null) {
+        dates.push(match[1]);
+      }
+      if (dates.length >= 1) coll.startDate = dates[0];
+      if (dates.length >= 2) coll.endDate = dates[1];
+
+      // Natural date regex extractions
+      if (!coll.startDate) {
+        const naturalPatterns = [
+          /(?:coming|next)\s+[a-z]+\s+\d+\s+weeks?\s+from\s+(?:today|now)/i,
+          /[a-z]+\s+\d+\s+weeks?\s+from\s+(?:today|now)/i,
+          /\d+\s+weeks?\s+from\s+(?:today|now)/i,
+          /(?:coming|next|this)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
+          /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+          /\b(today|tomorrow|day after tomorrow)\b/i,
+          /in\s+\d+\s+days?/i
+        ];
+
+        for (const pattern of naturalPatterns) {
+          const matchText = text.match(pattern);
+          if (matchText) {
+            const parsed = parseDate(matchText[0]);
+            if (parsed) {
+              coll.startDate = parsed;
+              break;
+            }
+          }
+        }
+      }
+
+      if (coll.startDate && !coll.endDate) {
+        const toMatch = text.match(/(?:to|until|through)\s+(.+)$/i);
+        if (toMatch) {
+          const parsedEnd = parseDate(toMatch[1]);
+          if (parsedEnd && parsedEnd >= coll.startDate) {
+            coll.endDate = parsedEnd;
+          }
+        }
+        if (!coll.endDate) {
+          coll.endDate = coll.startDate;
+        }
+      }
+
+      const reasonMatch = text.match(/(?:reason|because|for)\s+(.+)$/i);
+      if (reasonMatch) {
+        coll.reason = reasonMatch[1].trim();
+      }
+    };
+
+    const triggersLeave = (text) => {
+      const t = text.toLowerCase();
+      return (t.includes('apply') && t.includes('leave')) ||
+             (t.includes('request') && t.includes('leave')) ||
+             (t.includes('take') && t.includes('leave')) ||
+             (t.includes('want') && t.includes('leave')) ||
+             (t.includes('need') && t.includes('leave')) ||
+             t.includes('time off') ||
+             t.includes('take a leave') ||
+             t === 'leave';
+    };
+
+    // Scan history to reconstruct collected parameters
+    const historyCount = messages.length - 1;
+    for (let i = 0; i < historyCount; i++) {
+      const msg = messages[i];
+      if (msg.role === 'user' && triggersLeave(msg.content)) {
+        collected.inFlow = true;
+        extractParams(msg.content, collected);
+      }
+    }
+
+    let lastPrompt = null;
+    for (let i = 0; i < historyCount; i++) {
+      const msg = messages[i];
+      if (msg.role === 'assistant') {
+        if (msg.content.includes("What type of leave would you like to apply for")) {
+          lastPrompt = 'leaveType';
+        } else if (msg.content.includes("Please provide the start date for your leave")) {
+          lastPrompt = 'startDate';
+        } else if (msg.content.includes("Please provide the end date for your leave")) {
+          lastPrompt = 'endDate';
+        } else if (msg.content.includes("Please tell me the reason for your leave")) {
+          lastPrompt = 'reason';
+        } else if (msg.content.includes("Should I submit this leave request for you")) {
+          lastPrompt = 'confirm';
+        }
+      } else if (msg.role === 'user' && collected.inFlow) {
+        if (lastPrompt === 'leaveType') {
+          const type = parseLeaveType(msg.content);
+          if (type) collected.leaveType = type;
+        } else if (lastPrompt === 'startDate') {
+          const date = parseDate(msg.content);
+          if (date) collected.startDate = date;
+        } else if (lastPrompt === 'endDate') {
+          const date = parseDate(msg.content);
+          if (date) collected.endDate = date;
+        } else if (lastPrompt === 'reason') {
+          collected.reason = msg.content.trim();
+        } else if (lastPrompt === 'confirm') {
+          const conf = parseYesNo(msg.content);
+          if (conf !== null) collected.confirm = conf;
+        }
+        lastPrompt = null;
+      }
+    }
+
+    const askNextMissing = (coll) => {
+      if (!coll.leaveType) {
+        return `### 🤖 Rachel\n\nSure, I can help you apply for a leave! What type of leave would you like to apply for? (Casual, Sick, or Earned)`;
+      }
+      if (!coll.startDate) {
+        return `### 🤖 Rachel\n\nUnderstood, **${coll.leaveType} leave**. Please provide the start date for your leave (use format YYYY-MM-DD, or type 'today' / 'tomorrow').`;
+      }
+      if (!coll.endDate) {
+        return `### 🤖 Rachel\n\nGot it, starting **${coll.startDate}**. Please provide the end date for your leave (use format YYYY-MM-DD, or type 'today' / 'tomorrow').`;
+      }
+      if (!coll.reason) {
+        return `### 🤖 Rachel\n\nPlease tell me the reason for your leave request (e.g. personal work, medical checkup).`;
+      }
+      
+      const diffTime = Math.abs(new Date(coll.endDate) - new Date(coll.startDate));
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      return `### 🤖 Rachel\n\nI have summarized your leave request details:\n* **Leave Type**: ${coll.leaveType}\n* **Start Date**: ${coll.startDate}\n* **End Date**: ${coll.endDate}\n* **Duration**: ${diffDays} day${diffDays > 1 ? 's' : ''}\n* **Reason**: ${coll.reason}\n\nShould I submit this leave request for you? (Yes/No)`;
+    };
+
+    const submitLeaveRequest = async (userId, coll) => {
+      const currentYear = new Date().getFullYear();
+      try {
+        const emp = await dbGet('SELECT id FROM employees WHERE user_id = ?', [userId]);
+        if (!emp) {
+          return `### 🤖 Rachel\n\n⚠️ Error: I could not find your employee profile in the database. Please contact an administrator.`;
+        }
+
+        const defaults = [
+          { type: 'Casual', days: 12 },
+          { type: 'Sick', days: 10 },
+          { type: 'Earned', days: 15 }
+        ];
+        for (const d of defaults) {
+          const existing = await dbGet(
+            'SELECT id FROM leave_balances WHERE employee_id = ? AND leave_type = ? AND year = ?',
+            [emp.id, d.type, currentYear]
+          );
+          if (!existing) {
+            await dbRun(
+              'INSERT INTO leave_balances (employee_id, leave_type, max_days, used_days, year) VALUES (?, ?, ?, 0, ?)',
+              [emp.id, d.type, d.days, currentYear]
+            );
+          }
+        }
+
+        const diffTime = Math.abs(new Date(coll.endDate) - new Date(coll.startDate));
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        const balance = await dbGet(
+          'SELECT * FROM leave_balances WHERE employee_id = ? AND leave_type = ? AND year = ?',
+          [emp.id, coll.leaveType, currentYear]
+        );
+
+        if (!balance) {
+          return `### 🤖 Rachel\n\n⚠️ Error: No configured balances found for **${coll.leaveType}** leave.`;
+        }
+
+        const available = balance.max_days - balance.used_days;
+        if (available < diffDays) {
+          return `### 🤖 Rachel\n\n⚠️ **Submission Failed**: Insufficient leave balance.\n* Requested: **${diffDays} days**\n* Available: **${available} days**`;
+        }
+
+        const result = await dbRun(`
+          INSERT INTO leave_requests (employee_id, leave_type, start_date, end_date, reason, status)
+          VALUES (?, ?, ?, ?, ?, 'Pending')
+        `, [emp.id, coll.leaveType, coll.startDate, coll.endDate, coll.reason]);
+
+        return `### 🤖 Rachel\n\n🎉 **Success!** I have submitted your leave request to your manager.\n* **Request ID**: #${result.id}\n* **Duration**: ${diffDays} day${diffDays > 1 ? 's' : ''}\n* **Status**: Pending Approval\n\nYou can review this request in the **Leave Planner** tab of your dashboard.`;
+      } catch (err) {
+        return `### 🤖 Rachel\n\n⚠️ Error: Failed to write leave request to database: ${err.message}`;
+      }
+    };
+
+    let processedInFlow = false;
+    let assistantReply = '';
+
+    if (collected.inFlow && query.toLowerCase().trim() === 'cancel') {
+      assistantReply = `### 🤖 Rachel\n\nLeave request flow has been cancelled. Let me know if you need help with anything else!`;
+      processedInFlow = true;
+    } else if (!collected.inFlow && triggersLeave(query)) {
+      collected.inFlow = true;
+      extractParams(query, collected);
+      assistantReply = askNextMissing(collected);
+      processedInFlow = true;
+    } else if (collected.inFlow) {
+      const lastAssistantMsg = messages.slice(0, -1).reverse().find(m => m.role === 'assistant');
+      let currentPrompt = null;
+      if (lastAssistantMsg) {
+        if (lastAssistantMsg.content.includes("What type of leave would you like to apply for")) {
+          currentPrompt = 'leaveType';
+        } else if (lastAssistantMsg.content.includes("Please provide the start date for your leave")) {
+          currentPrompt = 'startDate';
+        } else if (lastAssistantMsg.content.includes("Please provide the end date for your leave")) {
+          currentPrompt = 'endDate';
+        } else if (lastAssistantMsg.content.includes("Please tell me the reason for your leave")) {
+          currentPrompt = 'reason';
+        } else if (lastAssistantMsg.content.includes("Should I submit this leave request for you")) {
+          currentPrompt = 'confirm';
+        }
+      }
+
+      if (currentPrompt === 'leaveType') {
+        const type = parseLeaveType(query);
+        if (type) {
+          collected.leaveType = type;
+          assistantReply = askNextMissing(collected);
+        } else {
+          assistantReply = `### 🤖 Rachel\n\nI didn't quite catch that. Please specify one of the following leave types:\n* **Casual**\n* **Sick**\n* **Earned**`;
+        }
+      } else if (currentPrompt === 'startDate') {
+        const date = parseDate(query);
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (date) {
+          if (date < todayStr) {
+            assistantReply = `### 🤖 Rachel\n\n⚠️ The start date cannot be in the past. Please provide a valid start date (format YYYY-MM-DD, or type 'today' / 'tomorrow').`;
+          } else {
+            collected.startDate = date;
+            assistantReply = askNextMissing(collected);
+          }
+        } else {
+          assistantReply = `### 🤖 Rachel\n\nPlease provide a valid start date using the format **YYYY-MM-DD** (or type 'today' / 'tomorrow').`;
+        }
+      } else if (currentPrompt === 'endDate') {
+        const date = parseDate(query);
+        if (date) {
+          if (date < collected.startDate) {
+            assistantReply = `### 🤖 Rachel\n\n⚠️ The end date cannot be earlier than your start date (${collected.startDate}). Please provide a valid end date (format YYYY-MM-DD).`;
+          } else {
+            collected.endDate = date;
+            assistantReply = askNextMissing(collected);
+          }
+        } else {
+          assistantReply = `### 🤖 Rachel\n\nPlease provide a valid end date using the format **YYYY-MM-DD** (or type 'today' / 'tomorrow').`;
+        }
+      } else if (currentPrompt === 'reason') {
+        collected.reason = query.trim();
+        assistantReply = askNextMissing(collected);
+      } else if (currentPrompt === 'confirm') {
+        const conf = parseYesNo(query);
+        if (conf === true) {
+          assistantReply = await submitLeaveRequest(req.user.id, collected);
+        } else if (conf === false) {
+          assistantReply = `### 🤖 Rachel\n\nNo problem. I have cancelled the leave request submission. Let me know if you need to start over!`;
+        } else {
+          assistantReply = `### 🤖 Rachel\n\nI didn't catch your confirmation. Should I submit this leave request? Please answer **Yes** or **No**.`;
+        }
+      } else {
+        assistantReply = askNextMissing(collected);
+      }
+      processedInFlow = true;
+    }
+
+    if (processedInFlow) {
+      await dbRun('INSERT INTO ai_messages (conversation_id, role, content) VALUES (?, "assistant", ?)', [
+        finalConvId, assistantReply
+      ]);
+      return res.status(200).json({ response: assistantReply, conversationId: finalConvId, navigationTab });
+    }
+
     // 2. Intent parsing & dynamic database search tools
     const matchKeywords = (query, keywordsArray) => {
       return keywordsArray.some(keyword => query.includes(keyword));
@@ -380,7 +764,7 @@ ${holidays.map(h => `| ${h.name} | ${h.date} | ${h.description || 'Company Holid
     }
 
     // 3. Synthesize final assistant response
-    let assistantReply = '';
+    assistantReply = '';
     if (navigationTab) {
       const tabNames = {
         attendance: '⏱️ Attendance Tracking',
