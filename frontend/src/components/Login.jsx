@@ -1,18 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck } from 'lucide-react';
+
+const API_BASE = 'http://localhost:5000/api/v1';
+
+const CaptchaV2Fallback = ({ onChange }) => {
+  const [checked, setChecked] = useState(false);
+  const handleCheck = () => {
+    const nextState = !checked;
+    setChecked(nextState);
+    onChange(nextState ? 'mock_v2_captcha_token_123' : '');
+  };
+  return (
+    <div 
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '12px 16px',
+        background: '#f8fafc',
+        border: '1px solid #cbd5e1',
+        borderRadius: '8px',
+        margin: '16px 0',
+        cursor: 'pointer',
+        boxSizing: 'border-box'
+      }} 
+      onClick={handleCheck}
+    >
+      <input 
+        type="checkbox" 
+        checked={checked} 
+        readOnly 
+        style={{ cursor: 'pointer', width: '18px', height: '18px' }} 
+      />
+      <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>I'm not a robot</span>
+      <img 
+        src="https://www.gstatic.com/recaptcha/api2/logo_48.png" 
+        alt="recaptcha" 
+        style={{ width: '22px', height: '22px', marginLeft: 'auto' }} 
+      />
+    </div>
+  );
+};
 
 const Login = ({ onLoginSuccess, toggleView }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
-  // Social login states
-  const [oauthModal, setOauthModal] = useState(null); // null, 'google', 'linkedin'
-  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+
+  // Captcha states
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [captchaV2Response, setCaptchaV2Response] = useState('');
+  const [recaptchaToken, setRecaptchaToken] = useState('mock_v3_recaptcha_token');
+
+  // OAuth states
+  const [config, setConfig] = useState({ googleEnabled: false, linkedinEnabled: false });
+
+  useEffect(() => {
+    // Query backend to check if OAuth API credentials exist in environment variables
+    fetch(`${API_BASE}/auth/config`)
+      .then((res) => res.json())
+      .then((data) => setConfig(data))
+      .catch((err) => console.warn('OAuth config query failed:', err));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,13 +77,25 @@ const Login = ({ onLoginSuccess, toggleView }) => {
       return;
     }
 
+    // If Captcha is required (after 3 failures), verify it is checked
+    if (failedAttempts >= 3 && !captchaV2Response) {
+      setMessage({ type: 'error', text: 'Please complete the CAPTCHA check.' });
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email, 
+          password,
+          recaptchaToken,
+          captchaV2Response
+        }),
       });
 
       const data = await response.json();
@@ -41,12 +105,16 @@ const Login = ({ onLoginSuccess, toggleView }) => {
       }
 
       setMessage({ type: 'success', text: data.message });
-      
+      setFailedAttempts(0);
+      setCaptchaV2Response('');
+
       setTimeout(() => {
         onLoginSuccess(data.token, data.user);
       }, 800);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
+      // Increment failed attempts on credential failures
+      setFailedAttempts(prev => prev + 1);
     } finally {
       setLoading(false);
     }
@@ -58,67 +126,17 @@ const Login = ({ onLoginSuccess, toggleView }) => {
       setMessage({ type: 'error', text: 'Email address is required.' });
       return;
     }
-
     setLoading(true);
     setMessage(null);
-
     try {
-      const response = await fetch('http://localhost:5000/api/v1/auth/forgot-password', {
+      const response = await fetch(`${API_BASE}/auth/reset-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: resetEmail }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
       });
-
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Password reset request failed.');
-
+      if (!response.ok) throw new Error(data.error);
       setMessage({ type: 'success', text: data.message });
-    } catch (err) {
-      setMessage({ type: 'error', text: err.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOAuthLogin = async (profileEmail, name, role, organization) => {
-    setLoading(true);
-    setMessage(null);
-    setOauthModal(null);
-    const mockPassword = 'OAuthPassword123';
-    
-    try {
-      // Step 1: Pre-register social user in database (handles duplicate errors gracefully on backend)
-      await fetch('http://localhost:5000/api/v1/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name, 
-          email: profileEmail, 
-          password: mockPassword, 
-          role, 
-          organization, 
-          accessCode: role === 'Super Admin' ? 'SUPER2026' : role === 'Admin' ? 'ADMIN2026' : undefined 
-        })
-      });
-
-      // Step 2: Login the verified user
-      const response = await fetch('http://localhost:5000/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: profileEmail, password: mockPassword })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Social login authorization failed.');
-      }
-
-      setMessage({ type: 'success', text: `Signed in successfully via OAuth: Welcome, ${name}` });
-      setTimeout(() => {
-        onLoginSuccess(data.token, data.user);
-      }, 1000);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -129,8 +147,9 @@ const Login = ({ onLoginSuccess, toggleView }) => {
   return (
     <div className="auth-card" style={{ position: 'relative' }}>
       <div className="auth-header">
-        <h1 className="auth-logo">
-          Enterprise<span>WFM</span>
+        <h1 className="auth-logo" style={{ color: 'var(--pastel-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          Syncra
+          <span style={{ color: '#1e3a8a', fontSize: '18px', fontWeight: '500' }}>Enterprise Workforce</span>
         </h1>
         <p className="auth-subtitle">AI-Powered Workforce Operations Assistant</p>
       </div>
@@ -208,15 +227,25 @@ const Login = ({ onLoginSuccess, toggleView }) => {
               <label htmlFor="password" className="form-label">Password</label>
             </div>
 
-            <div style={{ textAlign: 'right', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              {failedAttempts > 0 && failedAttempts < 3 && (
+                <span style={{ fontSize: '11px', color: 'var(--pastel-red)', fontWeight: 'bold' }}>
+                  {3 - failedAttempts} attempts remaining before CAPTCHA
+                </span>
+              )}
               <span 
                 className="auth-toggle-link" 
                 onClick={() => { setForgotMode(true); setMessage(null); }}
-                style={{ fontSize: '13px', fontWeight: 500 }}
+                style={{ fontSize: '13px', fontWeight: 500, marginLeft: 'auto' }}
               >
                 Forgot password?
               </span>
             </div>
+
+            {/* Captcha v2 fallback trigger after 3 failed login attempts */}
+            {failedAttempts >= 3 && (
+              <CaptchaV2Fallback onChange={setCaptchaV2Response} />
+            )}
 
             <button 
               type="submit" 
@@ -236,23 +265,55 @@ const Login = ({ onLoginSuccess, toggleView }) => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              {/* Google OAuth Button */}
               <button 
                 type="button" 
                 className="btn-secondary" 
-                style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px', border: '1px solid rgba(0,0,0,0.06)' }}
-                onClick={() => setOauthModal('google')}
+                title={config.googleEnabled ? "Sign in with Google" : "Coming soon"}
+                style={{ 
+                  flexGrow: 1, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '8px', 
+                  padding: '8px 16px', 
+                  fontSize: '13px', 
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  cursor: 'pointer',
+                  opacity: 1
+                }}
+                onClick={() => {
+                  // Direct redirect to backend oauth path
+                  window.location.href = `${API_BASE}/auth/google`;
+                }}
               >
                 <img src="https://images.coolfields.co.uk/g-logo.png" alt="G" style={{ width: '14px', height: '14px' }} onError={(e) => { e.target.style.display='none'; }} />
-                Google
+                Google {!config.googleEnabled && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Demo)</span>}
               </button>
+
+              {/* LinkedIn OAuth Button */}
               <button 
                 type="button" 
                 className="btn-secondary" 
-                style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px', border: '1px solid rgba(0,0,0,0.06)' }}
-                onClick={() => setOauthModal('linkedin')}
+                title={config.linkedinEnabled ? "Sign in with LinkedIn" : "Coming soon"}
+                style={{ 
+                  flexGrow: 1, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '8px', 
+                  padding: '8px 16px', 
+                  fontSize: '13px', 
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  cursor: 'pointer',
+                  opacity: 1
+                }}
+                onClick={() => {
+                  window.location.href = `${API_BASE}/auth/linkedin`;
+                }}
               >
                 <span style={{ color: '#0077B5', fontWeight: 'bold', fontSize: '14px' }}>in</span>
-                LinkedIn
+                LinkedIn {!config.linkedinEnabled && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Demo)</span>}
               </button>
             </div>
           </div>
@@ -265,75 +326,6 @@ const Login = ({ onLoginSuccess, toggleView }) => {
           Create new account
         </span>
       </div>
-
-      {/* Simulated OAuth Selection Modal */}
-      {oauthModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          background: 'rgba(74, 46, 42, 0.4)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div className="auth-card" style={{ maxWidth: '400px', width: '90%', padding: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--text-dark)' }}>
-                Sign in with {oauthModal === 'google' ? 'Google' : 'LinkedIn'}
-              </h2>
-              <button 
-                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
-                onClick={() => setOauthModal(null)}
-              >
-                ×
-              </button>
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Select a mock social profile to authenticate securely.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {oauthModal === 'google' ? (
-                <>
-                  <button 
-                    className="btn-secondary" 
-                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 16px', height: 'auto', background: '#ffffff' }}
-                    onClick={() => handleOAuthLogin('admin.google@wfm.com', 'Alex Google Admin', 'Super Admin', 'Main Corp')}
-                  >
-                    <strong style={{ fontSize: '13.5px' }}>Alex Google Admin</strong>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>admin.google@wfm.com (Super Admin)</span>
-                  </button>
-                  <button 
-                    className="btn-secondary" 
-                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 16px', height: 'auto', background: '#ffffff' }}
-                    onClick={() => handleOAuthLogin('developer.google@wfm.com', 'Dev Google Staff', 'Employee', 'Engineering')}
-                  >
-                    <strong style={{ fontSize: '13.5px' }}>Dev Google Staff</strong>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>developer.google@wfm.com (Employee)</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    className="btn-secondary" 
-                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 16px', height: 'auto', background: '#ffffff' }}
-                    onClick={() => handleOAuthLogin('manager.linkedin@wfm.com', 'Jordan LinkedIn Mgr', 'Admin', 'Marketing')}
-                  >
-                    <strong style={{ fontSize: '13.5px' }}>Jordan LinkedIn Mgr</strong>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>manager.linkedin@wfm.com (Admin)</span>
-                  </button>
-                  <button 
-                    className="btn-secondary" 
-                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 16px', height: 'auto', background: '#ffffff' }}
-                    onClick={() => handleOAuthLogin('staff.linkedin@wfm.com', 'Taylor LinkedIn User', 'Employee', 'Marketing')}
-                  >
-                    <strong style={{ fontSize: '13.5px' }}>Taylor LinkedIn User</strong>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>staff.linkedin@wfm.com (Employee)</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

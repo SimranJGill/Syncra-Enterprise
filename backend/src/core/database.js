@@ -19,12 +19,14 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
+      password_hash TEXT, -- Nullable for OAuth accounts
       role TEXT NOT NULL, -- 'Employee', 'Admin', 'Super Admin'
       organization TEXT NOT NULL,
       login_attempts INTEGER DEFAULT 0,
       status TEXT DEFAULT 'active', -- 'active' or 'blocked'
       must_change_password INTEGER DEFAULT 0,
+      google_id TEXT UNIQUE,
+      linkedin_id TEXT UNIQUE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `, (err) => {
@@ -34,6 +36,12 @@ db.serialize(() => {
       // Alter table statements to dynamically patch existing databases
       db.run("ALTER TABLE users ADD COLUMN login_attempts INTEGER DEFAULT 0", [], (alterErr) => {});
       db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'", [], (alterErr) => {});
+      db.run("ALTER TABLE users ADD COLUMN google_id TEXT", [], (alterErr) => {
+        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)", [], () => {});
+      });
+      db.run("ALTER TABLE users ADD COLUMN linkedin_id TEXT", [], (alterErr) => {
+        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_linkedin_id ON users(linkedin_id)", [], () => {});
+      });
       db.run("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0", [], (alterErr) => {
         db.get('SELECT COUNT(*) as count FROM users', [], (countErr, row) => {
           if (!countErr && row.count === 0) {

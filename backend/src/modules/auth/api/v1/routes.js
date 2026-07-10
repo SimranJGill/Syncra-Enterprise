@@ -5,6 +5,7 @@ import { dbRun, dbGet, dbAll } from '#@/core/database';
 import { authenticateToken, requireRole, requirePermission, JWT_SECRET } from '#@/core/middleware/auth';
 import { logSimulatedEmail } from '#@/core/email.js';
 import { writeAuditLog } from '#@/core/audit.js';
+import { verifyCaptcha } from '#@/core/middleware/captcha.js';
 
 const router = Router();
 
@@ -14,46 +15,15 @@ const ACCESS_CODES = {
   'Super Admin': 'SUPER2026'
 };
 
-// Register user
+// Register user (simplified)
 router.post('/register', async (req, res) => {
-  const { name, email, password, role, organization, accessCode, inviteCode } = req.body;
+  const { email, password } = req.body;
 
-  let finalRole = role;
-  let finalOrg = organization;
-  let inviteRecord = null;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
 
   try {
-    // If registering with an invite code
-    if (inviteCode) {
-      inviteRecord = await dbGet('SELECT * FROM invites WHERE code = ? AND status = ?', [inviteCode, 'active']);
-      if (!inviteRecord) {
-        return res.status(400).json({ error: 'Invalid, expired, or already redeemed invite code.' });
-      }
-      finalRole = inviteRecord.role;
-      finalOrg = inviteRecord.organization;
-    } else {
-      // Standard registration validation
-      if (!name || !email || !password || !role || !organization) {
-        return res.status(400).json({ error: 'All fields are required.' });
-      }
-
-      const validRoles = ['Employee', 'Admin', 'Super Admin'];
-      if (!validRoles.includes(role)) {
-        return res.status(400).json({ error: 'Invalid role specified.' });
-      }
-
-      if (role === 'Admin' || role === 'Super Admin') {
-        const requiredCode = ACCESS_CODES[role];
-        if (accessCode !== requiredCode) {
-          return res.status(403).json({ error: `Invalid access code for the role of ${role}.` });
-        }
-      }
-    }
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
-    }
-
     const existingUser = await dbGet('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
     if (existingUser) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
@@ -62,38 +32,34 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
+    const name = email.split('@')[0];
+    const role = 'Employee';
+    const organization = 'MC';
+
     const result = await dbRun(
-      'INSERT INTO users (name, email, password_hash, role, organization) VALUES (?, ?, ?, ?, ?)',
-      [name, email.toLowerCase(), passwordHash, finalRole, finalOrg]
+      'INSERT INTO users (name, email, password_hash, role, organization, status) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, email.toLowerCase(), passwordHash, role, organization, 'active']
     );
 
-    // If an invite code was redeemed, update status
-    if (inviteRecord) {
-      await dbRun(
-        'UPDATE invites SET status = ?, redeemed_by = ? WHERE id = ?',
-        ['redeemed', result.id, inviteRecord.id]
-      );
-    }
+    const roleDetails = await dbGet('SELECT level, permissions FROM roles WHERE name = ?', [role]);
+    const payload = {
+      id: result.id,
+      name,
+      email: email.toLowerCase(),
+      role,
+      organization,
+      level: roleDetails ? roleDetails.level : 10,
+      permissions: roleDetails ? JSON.parse(roleDetails.permissions) : ['org:read']
+    };
+    
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 
-    // Log simulated welcome email
-    await logSimulatedEmail(
-      email.toLowerCase(),
-      `Welcome to the Platform, ${name}!`,
-      `Hi ${name},\n\nWelcome to the Enterprise WFM Platform! Your account as "${finalRole}" under "${finalOrg}" has been created successfully.`,
-      'WelcomeEmployee'
-    );
-
-    await writeAuditLog(result.id, 'User Registration', `New user registered with role: ${finalRole}`);
+    await writeAuditLog(result.id, 'User Registration', `New user registered with role: ${role}`);
 
     res.status(201).json({
       message: 'User registered successfully!',
-      user: {
-        id: result.id,
-        name,
-        email: email.toLowerCase(),
-        role: finalRole,
-        organization: finalOrg
-      }
+      token,
+      user: payload
     });
   } catch (err) {
     console.error('Registration error:', err.message);
@@ -102,7 +68,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login user
-router.post('/login', async (req, res) => {
+router.post('/login', verifyCaptcha, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -335,9 +301,196 @@ router.post('/unblock', authenticateToken, requirePermission('user:unblock'), as
   }
 });
 
+// Helper to complete OAuth logins
+async function handleOAuthSuccess(user, res) {
+  const roleDetails = await dbGet('SELECT level, permissions FROM roles WHERE name = ?', [user.role]);
+  const payload = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    organization: user.organization,
+    level: roleDetails ? roleDetails.level : 10,
+    permissions: roleDetails ? JSON.parse(roleDetails.permissions) : ['org:read']
+  };
+  
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  
+  res.send(`
+    <html>
+      <body>
+        <script>
+          localStorage.setItem('wfm_token', '${token}');
+          localStorage.setItem('wfm_user', JSON.stringify(${JSON.stringify(payload)}));
+          window.location.href = '/Enterprise-Workforce-Management-Platform-with-AI-Operations-Assistant/';
+        </script>
+      </body>
+    </html>
+  `);
+}
+
+// Google OAuth Redirect
+router.get('/google', (req, res) => {
+  const clientID = process.env.GOOGLE_CLIENT_ID;
+  if (!clientID) {
+    return res.redirect('/api/auth/google/callback?mock=true&email=alex.google@wfm.com&name=Alex Google Admin&role=Super Admin');
+  }
+  const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectURI)}&response_type=code&scope=email%20profile`);
+});
+
+// Google OAuth Callback
+router.get('/google/callback', async (req, res) => {
+  const { mock, email, name, role, code } = req.query;
+  let userEmail = email;
+  let userName = name;
+  let userRole = role || 'Employee';
+  let googleId = 'google_' + Math.random().toString(36).substring(2, 9);
+
+  if (mock !== 'true' && code) {
+    try {
+      const clientID = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+      
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `code=${code}&client_id=${clientID}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(redirectURI)}&grant_type=authorization_code`
+      });
+      const tokens = await tokenRes.json();
+      
+      const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { 'Authorization': `Bearer ${tokens.access_token}` }
+      });
+      const profile = await profileRes.json();
+      userEmail = profile.email;
+      userName = profile.name;
+      googleId = profile.id;
+    } catch (err) {
+      return res.status(500).send(`OAuth Error: ${err.message}`);
+    }
+  }
+
+  if (!userEmail) {
+    return res.status(400).send('OAuth failed to fetch email.');
+  }
+
+  try {
+    const user = await dbGet('SELECT * FROM users WHERE email = ?', [userEmail.toLowerCase()]);
+    
+    if (user) {
+      if (!user.google_id && user.password_hash !== 'google_oauth_placeholder_hash') {
+        return res.status(403).send(`<h1>Security Block</h1><p>An account with email <strong>${userEmail}</strong> already exists using password login. Please sign in with your password instead to prevent account takeover.</p><a href="/Enterprise-Workforce-Management-Platform-with-AI-Operations-Assistant/">Back to Login</a>`);
+      }
+      
+      if (!user.google_id) {
+        await dbRun('UPDATE users SET google_id = ? WHERE id = ?', [googleId, user.id]);
+      }
+      await handleOAuthSuccess(user, res);
+    } else {
+      const result = await dbRun(
+        'INSERT INTO users (name, email, password_hash, role, organization, google_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [userName, userEmail.toLowerCase(), 'google_oauth_placeholder_hash', userRole, 'MC', googleId, 'active']
+      );
+      
+      const newUser = await dbGet('SELECT * FROM users WHERE id = ?', [result.id]);
+      await handleOAuthSuccess(newUser, res);
+    }
+  } catch (err) {
+    res.status(500).send('Database error during OAuth matching: ' + err.message);
+  }
+});
+
+// LinkedIn OAuth Redirect
+router.get('/linkedin', (req, res) => {
+  const clientID = process.env.LINKEDIN_CLIENT_ID;
+  if (!clientID) {
+    return res.redirect('/api/auth/linkedin/callback?mock=true&email=alex.linkedin@wfm.com&name=Alex LinkedIn Admin&role=Admin');
+  }
+  const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/linkedin/callback`;
+  res.redirect(`https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectURI)}&scope=r_liteprofile%20r_emailaddress`);
+});
+
+// LinkedIn OAuth Callback
+router.get('/linkedin/callback', async (req, res) => {
+  const { mock, email, name, role, code } = req.query;
+  let userEmail = email;
+  let userName = name;
+  let userRole = role || 'Employee';
+  let linkedinId = 'linkedin_' + Math.random().toString(36).substring(2, 9);
+
+  if (mock !== 'true' && code) {
+    try {
+      const clientID = process.env.LINKEDIN_CLIENT_ID;
+      const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+      const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/linkedin/callback`;
+      
+      const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(redirectURI)}&client_id=${clientID}&client_secret=${clientSecret}`
+      });
+      const tokens = await tokenRes.json();
+      
+      const profileRes = await fetch('https://api.linkedin.com/v2/me', {
+        headers: { 'Authorization': `Bearer ${tokens.access_token}` }
+      });
+      const profile = await profileRes.json();
+      userName = `${profile.localizedFirstName} ${profile.localizedLastName}`;
+      linkedinId = profile.id;
+
+      const emailRes = await fetch('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))', {
+        headers: { 'Authorization': `Bearer ${tokens.access_token}` }
+      });
+      const emailData = await emailRes.json();
+      userEmail = emailData.elements[0]['handle~'].emailAddress;
+    } catch (err) {
+      return res.status(500).send(`LinkedIn OAuth Error: ${err.message}`);
+    }
+  }
+
+  if (!userEmail) {
+    return res.status(400).send('OAuth failed to fetch LinkedIn email.');
+  }
+
+  try {
+    const user = await dbGet('SELECT * FROM users WHERE email = ?', [userEmail.toLowerCase()]);
+    
+    if (user) {
+      if (!user.linkedin_id && user.password_hash !== 'linkedin_oauth_placeholder_hash') {
+        return res.status(403).send(`<h1>Security Block</h1><p>An account with email <strong>${userEmail}</strong> already exists using password login. Please sign in with your password instead to prevent account takeover.</p><a href="/Enterprise-Workforce-Management-Platform-with-AI-Operations-Assistant/">Back to Login</a>`);
+      }
+      
+      if (!user.linkedin_id) {
+        await dbRun('UPDATE users SET linkedin_id = ? WHERE id = ?', [linkedinId, user.id]);
+      }
+      await handleOAuthSuccess(user, res);
+    } else {
+      const result = await dbRun(
+        'INSERT INTO users (name, email, password_hash, role, organization, linkedin_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [userName, userEmail.toLowerCase(), 'linkedin_oauth_placeholder_hash', userRole, 'MC', linkedinId, 'active']
+      );
+      const newUser = await dbGet('SELECT * FROM users WHERE id = ?', [result.id]);
+      await handleOAuthSuccess(newUser, res);
+    }
+  } catch (err) {
+    res.status(500).send('Database error during LinkedIn OAuth: ' + err.message);
+  }
+});
+
 // Verify current user
 router.get('/me', authenticateToken, (req, res) => {
   res.status(200).json({ user: req.user });
 });
 
+// Get OAuth config states
+router.get('/config', (req, res) => {
+  res.status(200).json({
+    googleEnabled: !!process.env.GOOGLE_CLIENT_ID,
+    linkedinEnabled: !!process.env.LINKEDIN_CLIENT_ID
+  });
+});
+
 export default router;
+

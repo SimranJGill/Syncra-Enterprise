@@ -138,7 +138,7 @@ const Dashboard = ({ user, onLogout }) => {
   const [cmdQuery, setCmdQuery] = useState('');
   const [cmdResults, setCmdResults] = useState([]);
   const [notifications, setNotifications] = useState([
-    { id: 1, text: 'Welcome to your Enterprise WFM Assistant.', read: false, time: 'Just now' },
+    { id: 1, text: 'Welcome to your Syncra Assistant.', read: false, time: 'Just now' },
     { id: 2, text: 'Holiday calendar has been updated.', read: true, time: '1 hour ago' }
   ]);
   const [showNotifications, setShowNotifications] = useState(false);

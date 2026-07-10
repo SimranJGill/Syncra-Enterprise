@@ -11,7 +11,7 @@ export function generateOfferLetterPdf(candidate, designationTitle, salary, join
       });
 
       // Header
-      doc.fontSize(22).font('Helvetica-Bold').text('ENTERPRISE WFM SYSTEMS', { align: 'center' }).moveDown(0.2);
+      doc.fontSize(22).font('Helvetica-Bold').text('SYNCRA ENTERPRISE', { align: 'center' }).moveDown(0.2);
       doc.fontSize(12).font('Helvetica').text('Corporate HQ • Compliance Operations Office', { align: 'center' }).moveDown();
       doc.text('----------------------------------------------------------------------------------------------------', { align: 'center' }).moveDown();
 
@@ -26,7 +26,7 @@ export function generateOfferLetterPdf(candidate, designationTitle, salary, join
 
       // Body
       doc.text(`Dear ${candidate.name},`, { font: 'Helvetica-Bold' }).moveDown();
-      doc.text(`On behalf of Enterprise WFM Systems, we are pleased to offer you employment for the position of ${designationTitle}.`);
+      doc.text(`On behalf of Syncra Enterprise, we are pleased to offer you employment for the position of ${designationTitle}.`);
       doc.text(`Your proposed annual base compensation will be $${salary.toLocaleString()} starting on your joining date of ${joiningDate}.`);
       doc.moveDown();
       doc.text('This offer is subject to strict HR approvals and verification of academic and professional credentials. To confirm your acceptance, please sign and return this offer within 3 business days.');
@@ -54,7 +54,7 @@ export function generatePayslipPdf(employee, payroll, monthName, year) {
       });
 
       // Header
-      doc.fontSize(22).font('Helvetica-Bold').text('ENTERPRISE WFM SYSTEMS', { align: 'center' }).moveDown(0.2);
+      doc.fontSize(22).font('Helvetica-Bold').text('SYNCRA ENTERPRISE', { align: 'center' }).moveDown(0.2);
       doc.fontSize(12).font('Helvetica').text('Monthly Remuneration Statement', { align: 'center' }).moveDown();
       doc.text('----------------------------------------------------------------------------------------------------', { align: 'center' }).moveDown();
 
