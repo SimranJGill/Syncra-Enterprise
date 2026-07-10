@@ -255,77 +255,8 @@ const Login = ({ onLoginSuccess, toggleView }) => {
               {loading ? 'Authenticating...' : 'Sign In'}
             </button>
           </form>
-
-          {/* Social Logins Section */}
-          <div style={{ margin: '24px 0 16px 0', textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '16px 0' }}>
-              <hr style={{ flexGrow: 1, border: 'none', borderTop: '1px solid rgba(74,46,42,0.08)' }} />
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Or login through</span>
-              <hr style={{ flexGrow: 1, border: 'none', borderTop: '1px solid rgba(74,46,42,0.08)' }} />
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              {/* Google OAuth Button */}
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                title={config.googleEnabled ? "Sign in with Google" : "Coming soon"}
-                style={{ 
-                  flexGrow: 1, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '8px', 
-                  padding: '8px 16px', 
-                  fontSize: '13px', 
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  cursor: 'pointer',
-                  opacity: 1
-                }}
-                onClick={() => {
-                  // Direct redirect to backend oauth path
-                  window.location.href = `${API_BASE}/auth/google`;
-                }}
-              >
-                <img src="https://images.coolfields.co.uk/g-logo.png" alt="G" style={{ width: '14px', height: '14px' }} onError={(e) => { e.target.style.display='none'; }} />
-                Google {!config.googleEnabled && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Demo)</span>}
-              </button>
-
-              {/* LinkedIn OAuth Button */}
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                title={config.linkedinEnabled ? "Sign in with LinkedIn" : "Coming soon"}
-                style={{ 
-                  flexGrow: 1, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '8px', 
-                  padding: '8px 16px', 
-                  fontSize: '13px', 
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  cursor: 'pointer',
-                  opacity: 1
-                }}
-                onClick={() => {
-                  window.location.href = `${API_BASE}/auth/linkedin`;
-                }}
-              >
-                <span style={{ color: '#0077B5', fontWeight: 'bold', fontSize: '14px' }}>in</span>
-                LinkedIn {!config.linkedinEnabled && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Demo)</span>}
-              </button>
-            </div>
-          </div>
         </>
       )}
-
-      <div className="auth-toggle" style={{ marginTop: '24px' }}>
-        Don't have an account?{' '}
-        <span className="auth-toggle-link" onClick={toggleView}>
-          Create new account
-        </span>
-      </div>
     </div>
   );
 };

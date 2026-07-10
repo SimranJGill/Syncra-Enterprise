@@ -333,9 +333,9 @@ async function handleOAuthSuccess(user, res) {
 router.get('/google', (req, res) => {
   const clientID = process.env.GOOGLE_CLIENT_ID;
   if (!clientID) {
-    return res.redirect('/api/auth/google/callback?mock=true&email=alex.google@wfm.com&name=Alex Google Admin&role=Super Admin');
+    return res.redirect('/api/v1/auth/google/callback?mock=true&email=alex.google@wfm.com&name=Alex Google Admin&role=Super Admin');
   }
-  const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const redirectURI = `${req.protocol}://${req.get('host')}/api/v1/auth/google/callback`;
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectURI)}&response_type=code&scope=email%20profile`);
 });
 
@@ -351,7 +351,7 @@ router.get('/google/callback', async (req, res) => {
     try {
       const clientID = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+      const redirectURI = `${req.protocol}://${req.get('host')}/api/v1/auth/google/callback`;
       
       const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -406,9 +406,9 @@ router.get('/google/callback', async (req, res) => {
 router.get('/linkedin', (req, res) => {
   const clientID = process.env.LINKEDIN_CLIENT_ID;
   if (!clientID) {
-    return res.redirect('/api/auth/linkedin/callback?mock=true&email=alex.linkedin@wfm.com&name=Alex LinkedIn Admin&role=Admin');
+    return res.redirect('/api/v1/auth/linkedin/callback?mock=true&email=alex.linkedin@wfm.com&name=Alex LinkedIn Admin&role=Admin');
   }
-  const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/linkedin/callback`;
+  const redirectURI = `${req.protocol}://${req.get('host')}/api/v1/auth/linkedin/callback`;
   res.redirect(`https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectURI)}&scope=r_liteprofile%20r_emailaddress`);
 });
 
@@ -424,7 +424,7 @@ router.get('/linkedin/callback', async (req, res) => {
     try {
       const clientID = process.env.LINKEDIN_CLIENT_ID;
       const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-      const redirectURI = `${req.protocol}://${req.get('host')}/api/auth/linkedin/callback`;
+      const redirectURI = `${req.protocol}://${req.get('host')}/api/v1/auth/linkedin/callback`;
       
       const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
         method: 'POST',
