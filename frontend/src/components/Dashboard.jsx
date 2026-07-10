@@ -1444,7 +1444,7 @@ const Dashboard = ({ user, onLogout }) => {
                           top: 'calc(100% + 8px)',
                           right: 0,
                           width: '240px',
-                          backgroundColor: '#ffffff',
+                          backgroundColor: 'var(--sidebar-bg)',
                           border: '1px solid var(--sidebar-border)',
                           borderRadius: '12px',
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
@@ -1464,11 +1464,12 @@ const Dashboard = ({ user, onLogout }) => {
                             marginTop: '8px', 
                             fontSize: '10px', 
                             fontWeight: 'bold', 
-                            color: '#2563eb', 
-                            backgroundColor: '#eff6ff', 
+                            color: 'var(--menu-active-color)', 
+                            backgroundColor: 'var(--menu-active-bg)', 
                             padding: '2px 8px', 
                             borderRadius: '4px',
-                            textTransform: 'uppercase'
+                            textTransform: 'uppercase',
+                            border: '1px solid var(--sidebar-border)'
                           }}>
                             {activeUserRole}
                           </span>
@@ -1499,7 +1500,7 @@ const Dashboard = ({ user, onLogout }) => {
                             gap: '8px',
                             transition: 'background-color 0.15s'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--card-item-bg)'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
                           👤 View Details
@@ -1527,7 +1528,7 @@ const Dashboard = ({ user, onLogout }) => {
                             gap: '8px',
                             transition: 'background-color 0.15s'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
                           <LogOut size={14} /> Log Out
