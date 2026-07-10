@@ -110,8 +110,6 @@ const LandingPage = ({ onEnter }) => {
         overflowY: 'auto'
       }}
     >
-      {/* Interactive Background Canvas (Google Antigravity inspired Orb) */}
-      <InteractiveOrb />
 
       {/* Decorative Orbs */}
       <div style={{ position: 'absolute', top: '-10%', left: '20%', width: '45vw', height: '45vw', borderRadius: '50%', background: 'rgba(99, 102, 241, var(--lp-orb-opacity))', filter: 'blur(120px)', pointerEvents: 'none', zIndex: 0 }} />
@@ -232,10 +230,12 @@ const LandingPage = ({ onEnter }) => {
           textAlign: 'center',
           padding: '80px 24px',
           zIndex: 10,
-          position: 'relative'
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <InteractiveOrb />
+        <div style={{ maxWidth: '900px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
           {/* Operations Kernel Badge */}
           <div style={{
             display: 'inline-flex',
