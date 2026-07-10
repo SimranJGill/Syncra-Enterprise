@@ -65,7 +65,7 @@ export default function TicketsTab({ user }) {
   useEffect(() => {
     fetchMyTickets();
     fetchQueue();
-    if (user.role === 'Admin' || user.role === 'Super Admin' || user.role === 'HR') {
+    if (['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR', 'IT Administrator'].includes(user.role) || user.permissions?.includes('helpdesk:crud')) {
       setActiveView('queue');
     }
   }, []);
@@ -153,7 +153,7 @@ export default function TicketsTab({ user }) {
       {/* Header controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '12px' }}>
-          {(user.role === 'Admin' || user.role === 'Super Admin' || user.role === 'HR') && (
+          {(['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR', 'IT Administrator'].includes(user.role) || user.permissions?.includes('helpdesk:crud')) && (
             <button
               onClick={() => setActiveView('queue')}
               style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeView === 'queue' ? '#eff6ff' : 'transparent', color: activeView === 'queue' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
@@ -306,7 +306,7 @@ export default function TicketsTab({ user }) {
             </form>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              {selectedTicket.status !== 'Resolved' && (user.role === 'Admin' || user.role === 'Super Admin' || user.role === 'HR') && (
+              {selectedTicket.status !== 'Resolved' && (['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR', 'IT Administrator'].includes(user.role) || user.permissions?.includes('helpdesk:crud')) && (
                 <button
                   onClick={() => handleResolveTicket(selectedTicket.id, 'Resolved')}
                   style={{ flex: 1, padding: '10px', background: '#166534', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}

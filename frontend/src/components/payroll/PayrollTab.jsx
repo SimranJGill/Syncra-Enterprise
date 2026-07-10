@@ -119,7 +119,7 @@ export default function PayrollTab({ user }) {
       {/* Tabs Menu */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '12px' }}>
-          {(user.role === 'Finance' || user.role === 'HR' || user.role === 'Admin' || user.role === 'Super Admin') && (
+          {(['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR', 'Finance Executive', 'Finance'].includes(user.role) || user.permissions?.includes('payroll:crud')) && (
             <button
               onClick={() => setActiveView('admin')}
               style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeView === 'admin' ? '#eff6ff' : 'transparent', color: activeView === 'admin' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}

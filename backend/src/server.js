@@ -1,6 +1,7 @@
 import app from './app.js';
 import { db } from '#@/core/database';
 import { initSocket } from '#@/core/socket.js';
+import { startInternshipExpiryScheduler } from '#@/core/scheduler.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -10,6 +11,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.CLOUDINARY_URL) {
 
 const server = app.listen(PORT, () => {
   console.log(`Syncra Enterprise backend server running on http://localhost:${PORT}`);
+  startInternshipExpiryScheduler();
 });
 
 // Initialize Socket.IO real-time server wrapper

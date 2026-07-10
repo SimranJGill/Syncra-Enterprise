@@ -64,8 +64,109 @@ import HybridWorkHubTab from './hybrid/HybridWorkHubTab';
 import GamificationTab from './gamification/GamificationTab';
 import ScenarioOrgChartTab from './org/ScenarioOrgChartTab';
 
+const ALL_PERMISSIONS_MAPPING = {
+  '*:*': 'Full Administrator Privileges (All actions)',
+  '*:read': 'Auditor Read-Only Access (All modules)',
+  'org:read': 'View Corporate Directory',
+  'org:write': 'Manage Organization Structure',
+  'department:write': 'Manage Departments Structure',
+  'role:manage': 'Create & Edit Workspace Roles',
+  'invite:generate': 'Generate invite codes',
+  'employee:crud': 'Full CRUD Employees Directory',
+  'employee:read': 'View Employees List',
+  'employee:self': 'Manage Self Employee Record',
+  'recruitment:crud': 'Manage Recruitment Pipeline',
+  'attendance:crud': 'Manage All Attendance Records',
+  'attendance:mark': 'Mark Self Attendance',
+  'attendance:approve': 'Approve Team Attendance Corrections',
+  'leave:crud': 'Manage All Leave Logs',
+  'leave:apply': 'Apply for Leaves',
+  'leave:approve': 'Approve/Reject Team Leaves',
+  'payroll:crud': 'Manage Salaries & Payroll',
+  'payroll:read': 'View Employee Payroll details',
+  'reports:payroll': 'Generate Payroll Reports',
+  'reports:department': 'Generate Department Reports',
+  'asset:crud': 'Manage Company Assets',
+  'helpdesk:crud': 'Manage IT Support Tickets',
+  'helpdesk:raise': 'File support/helpdesk tickets',
+  'user:unblock': 'Unlock Blocked Accounts',
+  'password:reset': 'Force Reset User Passwords',
+  'project:crud': 'Manage Team Projects',
+  'task:assign': 'Assign Tasks to Coworkers',
+  'task:self': 'Manage Self Assigned Tasks'
+};
+
+const PERMISSION_OPTIONS = [
+  '*:*', '*:read',
+  'org:read', 'org:write', 'department:write', 'role:manage', 'invite:generate',
+  'employee:crud', 'employee:read', 'employee:self',
+  'recruitment:crud',
+  'attendance:crud', 'attendance:mark', 'attendance:approve',
+  'leave:crud', 'leave:apply', 'leave:approve',
+  'payroll:crud', 'payroll:read',
+  'reports:payroll', 'reports:department',
+  'asset:crud', 'helpdesk:crud', 'helpdesk:raise',
+  'user:unblock', 'password:reset',
+  'project:crud', 'task:assign', 'task:self'
+];
+
+const roleHierarchyData = {
+  name: 'Super Admin',
+  level: 100,
+  roleName: 'Super Admin',
+  children: [
+    {
+      name: 'Organization Admin',
+      level: 90,
+      roleName: 'Organization Admin',
+      children: [
+        {
+          name: 'HR Manager',
+          level: 70,
+          roleName: 'HR Manager',
+          children: [
+            {
+              name: 'Department Manager',
+              level: 60,
+              roleName: 'Department Manager',
+              children: [
+                {
+                  name: 'Team Lead',
+                  level: 40,
+                  roleName: 'Team Lead',
+                  children: [
+                    { name: 'Employee', level: 20, roleName: 'Employee', children: [] },
+                    { name: 'Intern', level: 10, roleName: 'Intern', children: [] }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          name: 'Finance Executive',
+          level: 70,
+          roleName: 'Finance Executive',
+          children: [
+            { name: 'Employee', level: 20, roleName: 'Employee', children: [] }
+          ]
+        },
+        {
+          name: 'IT Administrator',
+          level: 70,
+          roleName: 'IT Administrator',
+          children: [
+            { name: 'Employee', level: 20, roleName: 'Employee', children: [] }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
 const Dashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'organizations', 'invites', 'roles', 'delegations', 'emailLogs'
+  const [rolesSubTab, setRolesSubTab] = useState('directory');
   const [organizations, setOrganizations] = useState([]);
   const [invites, setInvites] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
@@ -861,6 +962,71 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
           );
         })}
+      </div>
+    );
+  };
+
+  const renderRoleHierarchyNode = (node) => {
+    const hasChildren = node.children && node.children.length > 0;
+    const realRole = roles.find(r => r.name === node.roleName) || { permissions: [] };
+    
+    return (
+      <div key={node.name} className="tree-node-wrapper tree-child-node" style={{ paddingLeft: '20px', borderLeft: '1px dashed #cbd5e1', marginLeft: '10px', position: 'relative' }}>
+        <div 
+          className="tree-node-card-row" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            margin: '8px 0',
+            position: 'relative'
+          }}
+        >
+          <div 
+            className="tree-node-content" 
+            style={{ 
+              borderColor: 'rgba(74, 46, 42, 0.08)',
+              boxShadow: 'var(--shadow-sm)',
+              background: '#ffffff',
+              padding: '12px 18px',
+              borderRadius: '12px',
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '6px',
+              minWidth: '220px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <strong style={{ fontSize: '14px', color: '#1e293b' }}>{node.name}</strong>
+              <span style={{ fontSize: '10px', background: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold', marginLeft: 'auto' }}>
+                Lvl {node.level}
+              </span>
+            </div>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '300px' }}>
+              {realRole.permissions.length === 0 && (
+                <span style={{ fontSize: '9px', color: '#94a3b8', fontStyle: 'italic' }}>No active privileges</span>
+              )}
+              {realRole.permissions.slice(0, 3).map(p => (
+                <span key={p} style={{ fontSize: '9px', background: '#f1f5f9', color: '#475569', padding: '1px 4px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
+                  {p}
+                </span>
+              ))}
+              {realRole.permissions.length > 3 && (
+                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '500' }}>
+                  +{realRole.permissions.length - 3} more
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {hasChildren && (
+          <div className="tree-branch-container" style={{ display: 'block' }}>
+            {node.children.map(child => renderRoleHierarchyNode(child))}
+          </div>
+        )}
       </div>
     );
   };
@@ -2551,245 +2717,347 @@ const Dashboard = ({ user, onLogout }) => {
 
       {/* 4. ROLES TAB: Role Listing & Custom Role Builder */}
       {activeTab === 'roles' && (user.role === 'Super Admin' || user.permissions?.includes('role:manage')) && (
-        <section className="fade-in" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.4fr', gap: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Left Panel: Active Roles Table */}
-          <div className="auth-card" style={{ maxWidth: '100%', padding: '30px' }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--text-dark)', marginBottom: '16px' }}>
+          {/* Sub-tab navigation */}
+          <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid rgba(74,46,42,0.08)', paddingBottom: '12px' }}>
+            <button 
+              type="button"
+              className={rolesSubTab === 'directory' ? 'btn-primary' : 'btn-secondary'}
+              style={{ margin: 0, padding: '8px 16px', fontSize: '13px' }}
+              onClick={() => setRolesSubTab('directory')}
+            >
               🛡 Workspace Roles Directory
-            </h2>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-              System defaults and custom operational role hierarchies with action permission scopes.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {roles.map(r => {
-                const isSystemRole = ['Super Admin', 'Admin', 'Employee'].includes(r.name);
-                const isEditing = editingRoleId === r.id;
-
-                return (
-                  <div 
-                    key={r.id} 
-                    style={{ 
-                      padding: '20px', 
-                      background: isSystemRole ? 'rgba(74, 46, 42, 0.02)' : '#ffffff', 
-                      border: '1px solid rgba(74, 46, 42, 0.08)', 
-                      borderRadius: '12px',
-                      boxShadow: 'var(--shadow-sm)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                          {isSystemRole ? (
-                            <Crown size={18} strokeWidth={1.75} style={{ color: '#eab308' }} />
-                          ) : (
-                            <Shield size={18} strokeWidth={1.75} style={{ color: '#2563eb' }} />
-                          )}
-                        </span>
-                        <strong style={{ fontSize: '15.5px', color: 'var(--text-dark)' }}>{r.name}</strong>
-                        {isSystemRole && (
-                          <span className="card-badge" style={{ position: 'static', fontSize: '9px', background: 'rgba(74,46,42,0.05)', color: 'var(--text-muted)' }}>SYSTEM</span>
-                        )}
-                      </div>
-                      <span style={{ fontSize: '12px', background: 'rgba(247, 215, 148, 0.25)', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#b8860b' }}>
-                        Level Weight: {r.level}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {r.permissions.map(p => (
-                        <span 
-                          key={p} 
-                          className="user-badge badge-employee" 
-                          style={{ fontSize: '10px', textTransform: 'lowercase', background: 'rgba(74, 46, 42, 0.04)', color: 'var(--text-dark)', border: '1px solid rgba(74, 46, 42, 0.08)' }}
-                        >
-                          🔑 {p}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Actions (Only for custom roles where role level < user level) */}
-                    {!isSystemRole && r.level < user.level && (
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignSelf: 'flex-end' }}>
-                        <button 
-                          className="btn-secondary" 
-                          style={{ padding: '4px 12px', fontSize: '11px', margin: 0 }}
-                          onClick={() => {
-                            setEditingRoleId(r.id);
-                            setEditRoleName(r.name);
-                            setEditRoleLevel(r.level);
-                            setEditRolePerms(r.permissions);
-                          }}
-                        >
-                          ✏ Edit
-                        </button>
-                        <button 
-                          className="btn-primary" 
-                          style={{ padding: '4px 12px', fontSize: '11px', margin: 0, background: 'rgba(220, 80, 80, 0.1)', color: 'var(--pastel-red)', border: '1px solid rgba(220, 80, 80, 0.2)' }}
-                          onClick={() => handleDeleteRole(r.id)}
-                        >
-                          🗑 Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            </button>
+            <button 
+              type="button"
+              className={rolesSubTab === 'hierarchy' ? 'btn-primary' : 'btn-secondary'}
+              style={{ margin: 0, padding: '8px 16px', fontSize: '13px' }}
+              onClick={() => setRolesSubTab('hierarchy')}
+            >
+              👁 Role Hierarchy Diagram
+            </button>
           </div>
 
-          {/* Right Panel: Role Builder (Create or Edit Form) */}
-          <div className="auth-card" style={{ maxWidth: '100%', padding: '30px', height: 'fit-content' }}>
-            {editingRoleId ? (
-              // Edit Role Form
-              <>
+          {rolesSubTab === 'directory' ? (
+            <section className="fade-in" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.4fr', gap: '32px' }}>
+              {/* Left Panel: Active Roles Table */}
+              <div className="auth-card" style={{ maxWidth: '100%', padding: '30px' }}>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--text-dark)', marginBottom: '16px' }}>
-                  ✏ Edit Workspace Role
+                  🛡 Workspace Roles Directory
                 </h2>
-                <form onSubmit={handleUpdateRole}>
-                  <div className="form-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder=" "
-                      value={editRoleName}
-                      onChange={(e) => setEditRoleName(e.target.value)}
-                      required
-                    />
-                    <label className="form-label">Role Name</label>
-                  </div>
-
-                  <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Hierarchy Weight Level</span>
-                      <strong style={{ color: '#b8860b' }}>Level: {editRoleLevel}</strong>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="99"
-                      style={{ width: '100%', accentColor: 'var(--pastel-red)' }}
-                      value={editRoleLevel}
-                      onChange={(e) => setEditRoleLevel(parseInt(e.target.value))}
-                    />
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Must be lower than your hierarchy weight ({user.level})</span>
-                  </div>
-
-                  <div style={{ marginBottom: '24px' }}>
-                    <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '10px' }}>
-                      Assign Action Permissions
-                    </span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {['org:read', 'org:write', 'invite:generate', 'role:manage', 'user:unblock'].map(perm => (
-                        <label key={perm} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={editRolePerms.includes(perm)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setEditRolePerms([...editRolePerms, perm]);
-                              } else {
-                                setEditRolePerms(editRolePerms.filter(p => p !== perm));
-                              }
-                            }}
-                          />
-                          <span>{perm} ({perm === 'org:read' ? 'View Corporate directory' : perm === 'org:write' ? 'Add departments' : perm === 'invite:generate' ? 'Generate invite codes' : perm === 'role:manage' ? 'CRUD roles' : 'Unlock blocked accounts'})</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button type="submit" className="btn-primary" style={{ flexGrow: 1 }} disabled={loading}>
-                      Save Role Settings
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn-secondary" 
-                      style={{ width: '100px' }} 
-                      onClick={() => setEditingRoleId(null)}
-                      disabled={loading}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </>
-            ) : (
-              // Create Role Form
-              <>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--text-dark)', marginBottom: '16px' }}>
-                  🎫 Custom Role Builder
-                </h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                  Create modular user permissions levels to delegate administration.
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+                  System defaults and custom operational role hierarchies with action permission scopes.
                 </p>
 
-                <form onSubmit={handleCreateRole}>
-                  <div className="form-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder=" "
-                      value={newRoleName}
-                      onChange={(e) => setNewRoleName(e.target.value)}
-                      required
-                    />
-                    <label className="form-label">Role Name (e.g. Engineer)</label>
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {roles.map(r => {
+                    const isSystemRole = ['Super Admin', 'Organization Admin', 'HR Manager', 'Finance Executive', 'IT Administrator', 'Department Manager', 'Team Lead', 'Employee', 'Intern', 'Auditor'].includes(r.name);
+                    const isEditing = editingRoleId === r.id;
 
-                  <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Hierarchy Weight Level</span>
-                      <strong style={{ color: '#b8860b' }}>Level: {newRoleLevel}</strong>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="99"
-                      style={{ width: '100%', accentColor: 'var(--pastel-red)' }}
-                      value={newRoleLevel}
-                      onChange={(e) => setNewRoleLevel(parseInt(e.target.value))}
-                    />
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Must be lower than your hierarchy weight ({user.level})</span>
-                  </div>
+                    return (
+                      <div 
+                        key={r.id} 
+                        style={{ 
+                          padding: '20px', 
+                          background: isSystemRole ? 'rgba(74, 46, 42, 0.02)' : '#ffffff', 
+                          border: '1px solid rgba(74, 46, 42, 0.08)', 
+                          borderRadius: '12px',
+                          boxShadow: 'var(--shadow-sm)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                              {isSystemRole ? (
+                                <Crown size={18} strokeWidth={1.75} style={{ color: '#eab308' }} />
+                              ) : (
+                                <Shield size={18} strokeWidth={1.75} style={{ color: '#2563eb' }} />
+                              )}
+                            </span>
+                            <strong style={{ fontSize: '15.5px', color: 'var(--text-dark)' }}>{r.name}</strong>
+                            {isSystemRole && (
+                              <span className="card-badge" style={{ position: 'static', fontSize: '9px', background: 'rgba(74,46,42,0.05)', color: 'var(--text-muted)' }}>SYSTEM</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '12px', background: 'rgba(247, 215, 148, 0.25)', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#b8860b' }}>
+                            Level Weight: {r.level}
+                          </span>
+                        </div>
 
-                  <div style={{ marginBottom: '24px' }}>
-                    <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '10px' }}>
-                      Assign Action Permissions
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {r.permissions.map(p => (
+                            <span 
+                              key={p} 
+                              className="user-badge badge-employee" 
+                              style={{ fontSize: '10px', textTransform: 'lowercase', background: 'rgba(74, 46, 42, 0.04)', color: 'var(--text-dark)', border: '1px solid rgba(74, 46, 42, 0.08)' }}
+                            >
+                              🔑 {p}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Actions (Only for custom roles where role level < user level) */}
+                        {!isSystemRole && r.level < user.level && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignSelf: 'flex-end' }}>
+                            <button 
+                              className="btn-secondary" 
+                              style={{ padding: '4px 12px', fontSize: '11px', margin: 0 }}
+                              onClick={() => {
+                                setEditingRoleId(r.id);
+                                setEditRoleName(r.name);
+                                setEditRoleLevel(r.level);
+                                setEditRolePerms(r.permissions);
+                              }}
+                            >
+                              ✏ Edit
+                            </button>
+                            <button 
+                              className="btn-primary" 
+                              style={{ padding: '4px 12px', fontSize: '11px', margin: 0, background: 'rgba(220, 80, 80, 0.1)', color: 'var(--pastel-red)', border: '1px solid rgba(220, 80, 80, 0.2)' }}
+                              onClick={() => handleDeleteRole(r.id)}
+                            >
+                              🗑 Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right Panel: Role Builder (Create or Edit Form) */}
+              <div className="auth-card" style={{ maxWidth: '100%', padding: '30px', height: 'fit-content' }}>
+                {editingRoleId ? (
+                  // Edit Role Form
+                  <>
+                    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--text-dark)', marginBottom: '16px' }}>
+                      ✏ Edit Workspace Role
+                    </h2>
+                    <form onSubmit={handleUpdateRole}>
+                      <div className="form-group">
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder=" "
+                          value={editRoleName}
+                          onChange={(e) => setEditRoleName(e.target.value)}
+                          required
+                        />
+                        <label className="form-label">Role Name</label>
+                      </div>
+
+                      <div style={{ marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Hierarchy Weight Level</span>
+                          <strong style={{ color: '#b8860b' }}>Level: {editRoleLevel}</strong>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="99"
+                          style={{ width: '100%', accentColor: 'var(--pastel-red)' }}
+                          value={editRoleLevel}
+                          onChange={(e) => setEditRoleLevel(parseInt(e.target.value))}
+                        />
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Must be lower than your hierarchy weight ({user.level})</span>
+                      </div>
+
+                      <div style={{ marginBottom: '24px' }}>
+                        <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '10px' }}>
+                          Assign Action Permissions
+                        </span>
+                        <div style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '10px', 
+                          maxHeight: '220px', 
+                          overflowY: 'auto', 
+                          padding: '12px',
+                          background: 'rgba(74, 46, 42, 0.02)',
+                          border: '1px solid rgba(74, 46, 42, 0.08)',
+                          borderRadius: '8px'
+                        }}>
+                          {PERMISSION_OPTIONS.map(perm => (
+                            <label key={perm} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', margin: 0 }}>
+                              <input
+                                type="checkbox"
+                                checked={editRolePerms.includes(perm)}
+                                style={{ marginTop: '3px' }}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEditRolePerms([...editRolePerms, perm]);
+                                  } else {
+                                    setEditRolePerms(editRolePerms.filter(p => p !== perm));
+                                  }
+                                }}
+                              />
+                              <div>
+                                <strong style={{ display: 'block', color: 'var(--text-dark)' }}>{perm}</strong>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{ALL_PERMISSIONS_MAPPING[perm] || 'Custom Permission Scope'}</span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button type="submit" className="btn-primary" style={{ flexGrow: 1 }} disabled={loading}>
+                          Save Role Settings
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn-secondary" 
+                          style={{ width: '100px' }} 
+                          onClick={() => setEditingRoleId(null)}
+                          disabled={loading}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                ) : (
+                  // Create Role Form
+                  <>
+                    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--text-dark)', marginBottom: '16px' }}>
+                      🎫 Custom Role Builder
+                    </h2>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                      Create modular user permissions levels to delegate administration.
+                    </p>
+
+                    <form onSubmit={handleCreateRole}>
+                      <div className="form-group">
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder=" "
+                          value={newRoleName}
+                          onChange={(e) => setNewRoleName(e.target.value)}
+                          required
+                        />
+                        <label className="form-label">Role Name (e.g. Engineer)</label>
+                      </div>
+
+                      <div style={{ marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Hierarchy Weight Level</span>
+                          <strong style={{ color: '#b8860b' }}>Level: {newRoleLevel}</strong>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="99"
+                          style={{ width: '100%', accentColor: 'var(--pastel-red)' }}
+                          value={newRoleLevel}
+                          onChange={(e) => setNewRoleLevel(parseInt(e.target.value))}
+                        />
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Must be lower than your hierarchy weight ({user.level})</span>
+                      </div>
+
+                      <div style={{ marginBottom: '24px' }}>
+                        <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '10px' }}>
+                          Assign Action Permissions
+                        </span>
+                        <div style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '10px', 
+                          maxHeight: '220px', 
+                          overflowY: 'auto', 
+                          padding: '12px',
+                          background: 'rgba(74, 46, 42, 0.02)',
+                          border: '1px solid rgba(74, 46, 42, 0.08)',
+                          borderRadius: '8px'
+                        }}>
+                          {PERMISSION_OPTIONS.map(perm => (
+                            <label key={perm} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', margin: 0 }}>
+                              <input
+                                type="checkbox"
+                                checked={newRolePerms.includes(perm)}
+                                style={{ marginTop: '3px' }}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setNewRolePerms([...newRolePerms, perm]);
+                                  } else {
+                                    setNewRolePerms(newRolePerms.filter(p => p !== perm));
+                                  }
+                                }}
+                              />
+                              <div>
+                                <strong style={{ display: 'block', color: 'var(--text-dark)' }}>{perm}</strong>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{ALL_PERMISSIONS_MAPPING[perm] || 'Custom Permission Scope'}</span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button type="submit" className="btn-primary" disabled={loading || !newRoleName}>
+                        Create Custom Role
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            </section>
+          ) : (
+            <section className="fade-in" style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px' }}>
+              {/* Left Panel: Role Hierarchy Tree */}
+              <div className="auth-card" style={{ maxWidth: '100%', padding: '30px' }}>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--text-dark)', marginBottom: '16px' }}>
+                  👁 Role Hierarchy Diagram
+                </h2>
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+                  Visual reporting structure demonstrating corporate management chains.
+                </p>
+
+                <div className="tree-container" style={{ padding: '16px', background: 'rgba(74, 46, 42, 0.01)', borderRadius: '16px', border: '1px dashed rgba(74, 46, 42, 0.12)' }}>
+                  {renderRoleHierarchyNode(roleHierarchyData)}
+                </div>
+              </div>
+
+              {/* Right Panel: Lateral Roles Explainer */}
+              <div className="auth-card" style={{ height: 'fit-content', padding: '24px', background: 'rgba(74, 46, 42, 0.01)', border: '1px solid rgba(74, 46, 42, 0.08)' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text-dark)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ⚖ Lateral Compliance Roles
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
+                  These compliance and auditing roles sit outside the standard vertical reporting hierarchy. They possess independent read privileges across all platform scopes.
+                </p>
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid rgba(74, 46, 42, 0.08)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  boxShadow: 'var(--shadow-sm)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <strong style={{ fontSize: '14px', color: 'var(--text-dark)' }}>Auditor</strong>
+                    <span style={{ fontSize: '10px', background: '#cbd5e1', color: '#334155', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold', marginLeft: 'auto' }}>
+                      Lvl 15
                     </span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {['org:read', 'org:write', 'invite:generate', 'role:manage', 'user:unblock'].map(perm => (
-                        <label key={perm} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={newRolePerms.includes(perm)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setNewRolePerms([...newRolePerms, perm]);
-                              } else {
-                                setNewRolePerms(newRolePerms.filter(p => p !== perm));
-                              }
-                            }}
-                          />
-                          <span>{perm} ({perm === 'org:read' ? 'View Corporate directory' : perm === 'org:write' ? 'Add departments' : perm === 'invite:generate' ? 'Generate invite codes' : perm === 'role:manage' ? 'CRUD roles' : 'Unlock blocked accounts'})</span>
-                        </label>
-                      ))}
-                    </div>
                   </div>
-
-                  <button type="submit" className="btn-primary" disabled={loading || !newRoleName}>
-                    Create Custom Role
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </section>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                    Reports into: None (Lateral Independent compliance)
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {roles.find(r => r.name === 'Auditor')?.permissions.map(p => (
+                      <span key={p} style={{ fontSize: '9px', background: '#f1f5f9', color: '#475569', padding: '1px 4px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
       )}
 
       {/* 5. TEMPORARY DELEGATIONS TAB */}

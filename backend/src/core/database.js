@@ -27,6 +27,7 @@ db.serialize(() => {
       must_change_password INTEGER DEFAULT 0,
       google_id TEXT UNIQUE,
       linkedin_id TEXT UNIQUE,
+      internship_end_date TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `, (err) => {
@@ -42,15 +43,41 @@ db.serialize(() => {
       db.run("ALTER TABLE users ADD COLUMN linkedin_id TEXT", [], (alterErr) => {
         db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_linkedin_id ON users(linkedin_id)", [], () => {});
       });
+      db.run("ALTER TABLE users ADD COLUMN internship_end_date TEXT", [], (alterErr) => {});
       db.run("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0", [], (alterErr) => {
         db.get('SELECT COUNT(*) as count FROM users', [], (countErr, row) => {
-          if (!countErr && row.count === 0) {
-            db.run('INSERT INTO users (id, name, email, password_hash, role, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?)', [
-              1, 'System Admin', 'admin@wfm.com', '$2y$10$5KkQzH.2mB90L5WwT84S.OQf9WwR4u7m9E5r8N2O3P1Q0S1T2U3V4', 'Super Admin', 'MC', 'active'
-            ]);
-            db.run('INSERT INTO users (id, name, email, password_hash, role, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?)', [
-              2, 'Jane Doe', 'jane@wfm.com', '$2y$10$5KkQzH.2mB90L5WwT84S.OQf9WwR4u7m9E5r8N2O3P1Q0S1T2U3V4', 'Employee', 'ENG', 'active'
-            ]);
+          if (!countErr && row.count <= 2) {
+            db.serialize(() => {
+              db.run('DELETE FROM users');
+              
+              const defaultPasswordHash = '$2y$10$5KkQzH.2mB90L5WwT84S.OQf9WwR4u7m9E5r8N2O3P1Q0S1T2U3V4'; // "password123"
+              const nextMonth = new Date();
+              nextMonth.setDate(nextMonth.getDate() + 30);
+              const pastDate = new Date();
+              pastDate.setDate(pastDate.getDate() - 5);
+
+              const usersList = [
+                [1, 'System Admin', 'admin@wfm.com', defaultPasswordHash, 'Super Admin', 'MC', 'active', null],
+                [2, 'Jane Doe', 'jane@wfm.com', defaultPasswordHash, 'Employee', 'ENG', 'active', null],
+                [3, 'Alex Org Admin', 'orgadmin@wfm.com', defaultPasswordHash, 'Organization Admin', 'MC', 'active', null],
+                [4, 'Sarah HR Manager', 'hr@wfm.com', defaultPasswordHash, 'HR Manager', 'HR', 'active', null],
+                [5, 'Neha Finance Exec', 'finance@wfm.com', defaultPasswordHash, 'Finance Executive', 'FIN', 'active', null],
+                [6, 'Kevin IT Admin', 'it@wfm.com', defaultPasswordHash, 'IT Administrator', 'IT', 'active', null],
+                [7, 'Marcus Engineering Director', 'manager@wfm.com', defaultPasswordHash, 'Department Manager', 'ENG', 'active', null],
+                [8, 'Priya Frontend Lead', 'lead@wfm.com', defaultPasswordHash, 'Team Lead', 'ENG', 'active', null],
+                [9, 'Toby Auditor', 'auditor@wfm.com', defaultPasswordHash, 'Auditor', 'MC', 'active', null],
+                [10, 'Leo Engineering Intern', 'intern.eng@wfm.com', defaultPasswordHash, 'Intern', 'ENG', 'active', nextMonth.toISOString().split('T')[0]],
+                [11, 'Maya Marketing Intern', 'intern.mkt@wfm.com', defaultPasswordHash, 'Intern', 'MKT', 'active', pastDate.toISOString().split('T')[0]]
+              ];
+
+              for (const u of usersList) {
+                db.run(
+                  'INSERT INTO users (id, name, email, password_hash, role, organization, status, internship_end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+                  u
+                );
+              }
+              console.log('Rich demo users seeded successfully.');
+            });
           }
         });
       });
@@ -76,17 +103,32 @@ db.serialize(() => {
       db.run("ALTER TABLE organizations ADD COLUMN code TEXT", [], (alterErr) => {
         db.run("ALTER TABLE organizations ADD COLUMN manager_id INTEGER", [], (alterErr1) => {
           db.run("ALTER TABLE organizations ADD COLUMN status TEXT DEFAULT 'Active'", [], (alterErr2) => {
-            // Seed default root organization if none exist
-            db.get('SELECT COUNT(*) as count FROM organizations', [], (countErr, row) => {
+            // Seed default root organization and full department tree
+            db.get("SELECT COUNT(*) as count FROM organizations WHERE code = 'FE'", [], (countErr, row) => {
               if (!countErr && row.count === 0) {
-                db.run('INSERT INTO organizations (name, code, parent_id, status) VALUES (?, ?, ?, ?)', ['Main Corp', 'MC', null, 'Active']);
-                db.run('INSERT INTO organizations (name, code, parent_id, status) VALUES (?, ?, ?, ?)', ['Engineering', 'ENG', 1, 'Active']);
-                db.run('INSERT INTO organizations (name, code, parent_id, status) VALUES (?, ?, ?, ?)', ['Marketing', 'MKT', 1, 'Active']);
-              } else {
-                // Update existing seed nodes to ensure they have default codes
-                db.run("UPDATE organizations SET code = 'MC' WHERE id = 1 AND code IS NULL");
-                db.run("UPDATE organizations SET code = 'ENG' WHERE id = 2 AND code IS NULL");
-                db.run("UPDATE organizations SET code = 'MKT' WHERE id = 3 AND code IS NULL");
+                console.log('Seeding sub-departments and full department tree...');
+                db.serialize(() => {
+                  db.run('DELETE FROM organizations');
+                  
+                  // Root
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (1, 'Main Corp', 'MC', null, 'Active')");
+                  
+                  // Top-level departments
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (2, 'Engineering', 'ENG', 1, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (3, 'Marketing', 'MKT', 1, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (4, 'HR', 'HR', 1, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (5, 'Finance', 'FIN', 1, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (6, 'Sales', 'SALES', 1, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (7, 'IT / Support', 'IT', 1, 'Active')");
+
+                  // Engineering sub-departments
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (8, 'Frontend', 'FE', 2, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (9, 'Backend', 'BE', 2, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (10, 'QA', 'QA', 2, 'Active')");
+                  db.run("INSERT INTO organizations (id, name, code, parent_id, status) VALUES (11, 'DevOps', 'DEVOPS', 2, 'Active')");
+                  
+                  console.log('Organization departments seeded successfully.');
+                });
               }
             });
           });
@@ -123,17 +165,74 @@ db.serialize(() => {
     if (err) console.error('Error creating roles table:', err.message);
     else {
       console.log('Roles table ready.');
-      // Seed default system roles if they don't exist
-      db.get('SELECT COUNT(*) as count FROM roles', [], (countErr, row) => {
-        if (!countErr && row.count === 0) {
-          const superAdminPerms = JSON.stringify(["org:read", "org:write", "invite:generate", "role:manage", "user:unblock"]);
-          const adminPerms = JSON.stringify(["org:read", "org:write", "invite:generate", "user:unblock"]);
-          const employeePerms = JSON.stringify(["org:read"]);
+      // Seed default system roles if they don't exist, or if they need to be updated to the 10-role matrix
+      db.get("SELECT COUNT(*) as count FROM roles WHERE name = 'Organization Admin'", [], (checkErr, checkRow) => {
+        if (!checkErr && checkRow.count === 0) {
+          console.log('Seeding full 10-role matrix...');
+          db.serialize(() => {
+            db.run('DELETE FROM roles');
+            
+            const rolesList = [
+              {
+                name: 'Super Admin',
+                level: 100,
+                permissions: ["*:*"]
+              },
+              {
+                name: 'Organization Admin',
+                level: 90,
+                permissions: ["org:write", "department:write", "role:manage", "invite:generate", "org:read"]
+              },
+              {
+                name: 'HR Manager',
+                level: 70,
+                permissions: ["employee:crud", "recruitment:crud", "attendance:crud", "leave:crud", "reports:department", "org:read"]
+              },
+              {
+                name: 'Finance Executive',
+                level: 70,
+                permissions: ["payroll:crud", "payroll:read", "reports:payroll", "org:read"]
+              },
+              {
+                name: 'IT Administrator',
+                level: 70,
+                permissions: ["asset:crud", "helpdesk:crud", "user:unblock", "password:reset", "org:read"]
+              },
+              {
+                name: 'Department Manager',
+                level: 60,
+                permissions: ["attendance:approve", "leave:approve", "employee:read", "reports:department", "org:read"]
+              },
+              {
+                name: 'Team Lead',
+                level: 40,
+                permissions: ["project:crud", "task:assign", "employee:read", "org:read"]
+              },
+              {
+                name: 'Employee',
+                level: 20,
+                permissions: ["employee:self", "attendance:mark", "leave:apply", "helpdesk:raise", "task:self", "org:read"]
+              },
+              {
+                name: 'Intern',
+                level: 10,
+                permissions: ["employee:self", "attendance:mark", "task:self", "helpdesk:raise", "org:read"]
+              },
+              {
+                name: 'Auditor',
+                level: 15,
+                permissions: ["org:read", "employee:read", "attendance:read", "leave:read", "payroll:read", "reports:payroll", "reports:department", "asset:read", "helpdesk:read"]
+              }
+            ];
 
-          db.run('INSERT INTO roles (name, level, permissions) VALUES (?, ?, ?)', ['Super Admin', 100, superAdminPerms]);
-          db.run('INSERT INTO roles (name, level, permissions) VALUES (?, ?, ?)', ['Admin', 50, adminPerms]);
-          db.run('INSERT INTO roles (name, level, permissions) VALUES (?, ?, ?)', ['Employee', 10, employeePerms]);
-          console.log('Default roles seeded successfully.');
+            for (const r of rolesList) {
+              db.run(
+                'INSERT INTO roles (name, level, permissions) VALUES (?, ?, ?)', 
+                [r.name, r.level, JSON.stringify(r.permissions)]
+              );
+            }
+            console.log('10-role matrix seeded successfully.');
+          });
         }
       });
     }

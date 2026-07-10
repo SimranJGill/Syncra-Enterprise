@@ -64,7 +64,7 @@ const OrganizationsTab = ({ user }) => {
   const [currentMonth, setCurrentMonth] = useState(6); // July (0-indexed 6)
 
   const token = localStorage.getItem('wfm_token');
-  const isAdmin = user.role === 'Admin' || user.role === 'Super Admin';
+  const isAdmin = ['Super Admin', 'Organization Admin', 'Admin'].includes(user.role) || user.permissions?.includes('org:write');
 
   const getHeaders = () => ({
     'Authorization': `Bearer ${token}`,

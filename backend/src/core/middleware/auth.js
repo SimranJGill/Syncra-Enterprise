@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { dbGet } from '#@/core/database';
+import { dbGet, dbRun } from '#@/core/database.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'WFM_SECRET_KEY_2026';
 
@@ -15,10 +15,20 @@ const authenticateToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // 1. Fetch latest user status and role from DB
-    const dbUser = await dbGet('SELECT id, status, role FROM users WHERE id = ?', [decoded.id]);
+    // 1. Fetch latest user status, role, and internship expiry from DB
+    const dbUser = await dbGet('SELECT id, status, role, internship_end_date FROM users WHERE id = ?', [decoded.id]);
     if (!dbUser) {
       return res.status(404).json({ error: 'User account not found.' });
+    }
+    
+    // Real-time internship expiration guard
+    if (dbUser.role === 'Intern' && dbUser.internship_end_date) {
+      const today = new Date().toISOString().split('T')[0];
+      if (dbUser.internship_end_date < today) {
+        // Force status update to blocked
+        await dbRun('UPDATE users SET status = ? WHERE id = ?', ['blocked', dbUser.id]);
+        return res.status(403).json({ error: 'Access denied. Your internship period has expired.' });
+      }
     }
     
     if (dbUser.status === 'blocked') {
@@ -98,7 +108,10 @@ const requirePermission = (permission) => {
       return res.status(401).json({ error: 'Unauthorized.' });
     }
 
-    if (!req.user.permissions.includes(permission)) {
+    const hasWildcard = req.user.permissions.includes('*:*');
+    const hasReadWildcard = permission.endsWith(':read') && req.user.permissions.includes('*:read');
+
+    if (!hasWildcard && !hasReadWildcard && !req.user.permissions.includes(permission)) {
       return res.status(403).json({ 
         error: `Access denied. Action requires '${permission}' permission.` 
       });

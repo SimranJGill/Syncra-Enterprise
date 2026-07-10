@@ -185,7 +185,7 @@ export default function PerformanceTab({ user }) {
       {/* Tabs Menu */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '12px' }}>
-          {(user.role === 'Admin' || user.role === 'Super Admin' || user.role === 'HR') && (
+          {(['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR', 'Department Manager'].includes(user.role)) && (
             <button
               onClick={() => setActiveView('manager')}
               style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeView === 'manager' ? '#eff6ff' : 'transparent', color: activeView === 'manager' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}

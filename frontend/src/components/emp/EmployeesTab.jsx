@@ -44,6 +44,7 @@ const EmployeesTab = ({ user, prefilledOnboarding, onClearPrefill }) => {
     name: '', email: '', mobile: '', address: '', gender: 'Male', bloodGroup: 'O+', dob: '',
     departmentId: '', designationId: '', joiningDate: '', reportingManagerId: '',
     employmentType: 'Full-time', salaryGrade: 'G3', salary: '80000',
+    role: 'Employee', internshipEndDate: '',
     documents: [] // Array of { type, url }
   });
 
@@ -57,9 +58,9 @@ const EmployeesTab = ({ user, prefilledOnboarding, onClearPrefill }) => {
   const [mockUploadUrl, setMockUploadUrl] = useState('');
 
   const token = localStorage.getItem('wfm_token');
-  const isHR = user.role === 'Super Admin' || user.role === 'Admin' || user.role === 'HR';
-  const isFinance = user.role === 'Finance' || user.role === 'Super Admin';
-  const canSeeSalary = ['Super Admin', 'Admin', 'HR', 'Finance'].includes(user.role);
+  const isHR = ['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR'].includes(user.role);
+  const isFinance = ['Super Admin', 'Organization Admin', 'Admin', 'Finance Executive', 'Finance'].includes(user.role);
+  const canSeeSalary = ['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR', 'Finance Executive', 'Finance'].includes(user.role);
 
   useEffect(() => {
     if (prefilledOnboarding) {
@@ -220,6 +221,7 @@ const EmployeesTab = ({ user, prefilledOnboarding, onClearPrefill }) => {
           name: '', email: '', mobile: '', address: '', gender: 'Male', bloodGroup: 'O+', dob: '',
           departmentId: '', designationId: '', joiningDate: '', reportingManagerId: '',
           employmentType: 'Full-time', salaryGrade: 'G3', salary: '80000',
+          role: 'Employee', internshipEndDate: '',
           documents: []
         });
         fetchEmployees();
@@ -960,6 +962,43 @@ const EmployeesTab = ({ user, prefilledOnboarding, onClearPrefill }) => {
                     />
                     <label className="form-label">Annual Base Salary ($)</label>
                   </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: wizardForm.role === 'Intern' ? '1fr 1fr' : '1fr', gap: '16px' }}>
+                  <div className="form-group form-select-container">
+                    <select
+                      className="form-control form-select"
+                      value={wizardForm.role}
+                      onChange={(e) => {
+                        const newRole = e.target.value;
+                        setWizardForm({ 
+                          ...wizardForm, 
+                          role: newRole,
+                          employmentType: newRole === 'Intern' ? 'Intern' : wizardForm.employmentType
+                        });
+                      }}
+                      required
+                    >
+                      {['Super Admin', 'Organization Admin', 'HR Manager', 'Finance Executive', 'IT Administrator', 'Department Manager', 'Team Lead', 'Employee', 'Intern', 'Auditor'].map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                    <label className="form-label">Workspace Role Privilege</label>
+                  </div>
+
+                  {wizardForm.role === 'Intern' && (
+                    <div className="form-group">
+                      <input
+                        type="date"
+                        className="form-control"
+                        placeholder=" "
+                        value={wizardForm.internshipEndDate}
+                        onChange={(e) => setWizardForm({ ...wizardForm, internshipEndDate: e.target.value })}
+                        required
+                      />
+                      <label className="form-label">Internship End Date</label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Back / Final Submit buttons */}

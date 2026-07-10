@@ -54,6 +54,13 @@ router.post('/apply', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'leaveType, startDate, and endDate parameters are required.' });
   }
 
+  // Gate Casual/Earned paid leave types for interns
+  if (req.user.role === 'Intern' && ['Casual', 'Earned'].includes(leaveType)) {
+    return res.status(403).json({ 
+      error: 'Access denied. Paid leave types (Casual, Earned) are restricted for interns. Please apply for Unpaid or WFH leave requests.' 
+    });
+  }
+
   // Date validation: no past dates
   const todayStr = new Date().toISOString().split('T')[0];
   if (startDate < todayStr) {

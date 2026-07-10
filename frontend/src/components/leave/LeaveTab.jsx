@@ -221,7 +221,7 @@ export default function LeaveTab({ user }) {
 
       {/* 2. SIDE PANEL (Approvals list for managers) */}
       <div>
-        {(user.role === 'Admin' || user.role === 'Super Admin' || user.role === 'HR') && (
+        {(['Super Admin', 'Organization Admin', 'Admin', 'HR Manager', 'HR', 'Department Manager'].includes(user.role) || user.permissions?.includes('leave:approve')) && (
           <div className="auth-card" style={{ padding: '20px', background: '#ffffff', border: '1px solid #cbd5e1' }}>
             <h4 style={{ margin: 0, fontWeight: '700', marginBottom: '12px' }}>Leave Approvals</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

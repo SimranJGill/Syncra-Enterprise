@@ -46,6 +46,11 @@ router.get('/', authenticateToken, async (req, res) => {
     `;
     const params = [];
 
+    if (req.user.role === 'Intern') {
+      query += ' AND e.user_id = ?';
+      params.push(req.user.id);
+    }
+
     if (departmentId) {
       query += ' AND e.department_id = ?';
       params.push(parseInt(departmentId));
@@ -211,20 +216,22 @@ router.post('/', authenticateToken, requirePermission('org:write'), async (req, 
       return res.status(500).json({ error: 'Failed to generate a unique employee ID. Please try again.' });
     }
 
+    const { role, internshipEndDate } = req.body;
+
     // 5. Create user login record (random hashed password, must_change_password = 1)
     const randomHex = crypto.randomBytes(16).toString('hex');
     const placeholderHash = await bcrypt.hash(randomHex, 10);
     
     const userResult = await dbRun(
-      'INSERT INTO users (name, email, password_hash, role, organization, status, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, email, placeholderHash, 'Employee', 'Engineering', 'active', 1]
+      'INSERT INTO users (name, email, password_hash, role, organization, status, must_change_password, internship_end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, placeholderHash, role || 'Employee', 'MC', 'active', 1, internshipEndDate || null]
     );
     const newUserId = userResult.id;
 
     // Assign Role permissions in role_assignments table
     await dbRun(
       'INSERT INTO role_assignments (user_id, role_name, assigned_by) VALUES (?, ?, ?)',
-      [newUserId, 'Employee', req.user.id]
+      [newUserId, role || 'Employee', req.user.id]
     );
 
     // 6. Create employee profile
