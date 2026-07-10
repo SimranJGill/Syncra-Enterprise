@@ -128,15 +128,7 @@ export default function InteractiveOrb({
 
     initParticles();
 
-    // Set initial positions immediately
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    particles.forEach(p => {
-      p.x = centerX + p.x0;
-      p.y = centerY + p.y0;
-    });
-
+    let hasInitializedPositions = false;
     let time = 0;
 
     // Render / Animation Loop
@@ -144,8 +136,23 @@ export default function InteractiveOrb({
       if (!isComponentMounted) return;
 
       const rect = containerRef.current.getBoundingClientRect();
+      
+      // Wait for layout calculation to give non-zero dimensions
+      if (rect.width === 0 || rect.height === 0) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
+
+      if (!hasInitializedPositions) {
+        particles.forEach(p => {
+          p.x = centerX + p.x0;
+          p.y = centerY + p.y0;
+        });
+        hasInitializedPositions = true;
+      }
 
       ctx.clearRect(0, 0, rect.width, rect.height);
 
@@ -276,9 +283,9 @@ export default function InteractiveOrb({
       style={{
         position: 'absolute',
         top: 0,
+        bottom: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
+        right: 0,
         zIndex: 0,
         pointerEvents: 'none', // Set to none so it never blocks overlay clicks or buttons
         overflow: 'hidden'
@@ -290,7 +297,9 @@ export default function InteractiveOrb({
           display: 'block',
           position: 'absolute',
           top: 0,
+          bottom: 0,
           left: 0,
+          right: 0,
           pointerEvents: 'none'
         }}
       />
