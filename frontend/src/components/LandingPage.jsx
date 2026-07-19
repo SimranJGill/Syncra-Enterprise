@@ -71,8 +71,8 @@ const LandingPage = ({ onEnter }) => {
     let particles = [];
     
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
     };
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -282,9 +282,10 @@ const LandingPage = ({ onEnter }) => {
   };
 
   const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
     mouseRef.current = {
-      x: e.clientX,
-      y: e.clientY,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
       active: true
     };
   };
@@ -313,19 +314,19 @@ const LandingPage = ({ onEnter }) => {
       <canvas 
         ref={canvasRef}
         style={{
-          position: 'fixed',
+          position: 'absolute',
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
+          width: '100%',
+          height: '100%',
           pointerEvents: 'none',
           zIndex: 0
         }}
       />
 
       {/* Decorative Orbs */}
-      <div style={{ position: 'fixed', top: '-10%', left: '20%', width: '45vw', height: '45vw', borderRadius: '50%', background: 'rgba(99, 102, 241, var(--lp-orb-opacity))', filter: 'blur(120px)', pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'fixed', top: '40%', right: '-10%', width: '35vw', height: '35vw', borderRadius: '50%', background: 'rgba(168, 85, 247, var(--lp-orb-opacity))', filter: 'blur(140px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: '-10%', left: '20%', width: '45vw', height: '45vw', borderRadius: '50%', background: 'rgba(99, 102, 241, var(--lp-orb-opacity))', filter: 'blur(120px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: '40%', right: '-10%', width: '35vw', height: '35vw', borderRadius: '50%', background: 'rgba(168, 85, 247, var(--lp-orb-opacity))', filter: 'blur(140px)', pointerEvents: 'none', zIndex: 0 }} />
 
       {/* Header bar */}
       <header style={{
@@ -334,10 +335,10 @@ const LandingPage = ({ onEnter }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: 'none',
+        borderBottom: '1px solid var(--lp-border)',
         zIndex: 10,
-        background: 'transparent',
-        backdropFilter: 'none'
+        background: 'var(--lp-header-bg)',
+        backdropFilter: 'blur(8px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img 
